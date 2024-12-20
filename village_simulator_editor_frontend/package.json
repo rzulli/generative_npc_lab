@@ -1,0 +1,73 @@
+{
+    "name": "template-react-ts",
+    "description": "A Phaser 3 TypeScript project template that demonstrates React communication and uses Vite for bundling.",
+    "version": "1.0.3",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/phaserjs/template-react-ts.git"
+    },
+    "author": "Phaser Studio <support@phaser.io> (https://phaser.io/)",
+    "license": "MIT",
+    "licenseUrl": "http://www.opensource.org/licenses/mit-license.php",
+    "bugs": {
+        "url": "https://github.com/phaserjs/template-react-ts/issues"
+    },
+    "homepage": "https://github.com/phaserjs/template-react-ts#readme",
+    "keywords": [
+        "phaser",
+        "phaser3",
+        "react",
+        "vite",
+        "typescript"
+    ],
+    "scripts": {
+        "dev": "node log.js dev & vite --config vite/config.dev.mjs",
+        "build": "node log.js build & vite build --config vite/config.prod.mjs",
+        "dev-nolog": "vite --config vite/config.dev.mjs",
+        "build-nolog": "vite build --config vite/config.prod.mjs"
+    },
+    "dependencies": {
+        "@hookform/resolvers": "^3.9.1",
+        "@radix-ui/react-context-menu": "^2.2.4",
+        "@radix-ui/react-dialog": "^1.1.4",
+        "@radix-ui/react-label": "^2.1.1",
+        "@radix-ui/react-menubar": "^1.1.4",
+        "@radix-ui/react-popover": "^1.1.4",
+        "@radix-ui/react-scroll-area": "^1.2.2",
+        "@radix-ui/react-slot": "^1.1.1",
+        "@radix-ui/react-toast": "^1.2.3",
+        "autoprefixer": "^10.4.20",
+        "axios": "^1.7.9",
+        "bitecs": "^0.3.40",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "cmdk": "^1.0.4",
+        "lucide-react": "^0.468.0",
+        "phaser": "^3.87.0",
+        "postcss": "^8.4.49",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-hook-form": "^7.54.1",
+        "tailwind-merge": "^2.5.5",
+        "tailwindcss": "^3.4.17",
+        "tailwindcss-animate": "^1.0.7",
+        "vaul": "^1.1.2",
+        "vite-jsconfig-paths": "^2.0.1",
+        "vite-plugin-dynamic-import": "^1.6.0",
+        "zod": "^3.24.1"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.2",
+        "@types/react": "^18.3.3",
+        "@types/react-dom": "^18.3.0",
+        "@typescript-eslint/eslint-plugin": "^7.13.1",
+        "@typescript-eslint/parser": "^7.13.1",
+        "@vitejs/plugin-react": "^4.3.1",
+        "eslint": "^8.57.0",
+        "eslint-plugin-react-hooks": "^4.6.2",
+        "eslint-plugin-react-refresh": "^0.4.7",
+        "terser": "^5.28.1",
+        "typescript": "^5.2.2",
+        "vite": "^5.3.1"
+    }
+}
