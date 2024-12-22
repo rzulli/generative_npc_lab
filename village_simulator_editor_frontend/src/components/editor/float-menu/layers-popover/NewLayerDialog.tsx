@@ -14,13 +14,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Database, Map, Plus } from "lucide-react";
+import { Database, Link, Map, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { z } from "zod";
 import { FormField } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
+import { buttonVariants } from "@/components/ui/button";
 
 interface NewLayerDialogProps {}
 
@@ -173,7 +174,14 @@ const NewLayerDialog: React.FC<NewLayerDialogProps> = () => {
                 </Form>
 
                 <DialogFooter>
-                    <Button type="submit">Save changes</Button>
+                    <div
+                        className={buttonVariants({ variant: "outline" })}
+                        onClick={() => {
+                            form.handleSubmit(onSubmit);
+                        }}
+                    >
+                        Save changes
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

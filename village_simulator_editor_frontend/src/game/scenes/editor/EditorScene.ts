@@ -13,16 +13,16 @@ enum Textures {
     TankRed,
 }
 import type { IWorld, System } from "bitecs";
-import createPlayerSystem from "../../systems/Player";
-import createSpriteSystem from "../../systems/Sprite";
+import createPlayerSystem from "../../systems/PlayerSystem";
+import createSpriteSystem from "../../systems/SpriteSystem";
 import Rotation from "../../components/Rotation";
-import { PlayerPrefab } from "../../prefabs/Player";
-import createTilemapSystem from "../../systems/TileMap";
+import { PlayerPrefab } from "../../prefabs/PlayerPrefab";
+import createTilemapSystem from "../../systems/TileMapSystem";
 import Tilemap from "../../components/Tilemap";
-import { MapPrefab } from "../../prefabs/Map";
-import createCursorSystem from "../../systems/Cursor";
-import { CursorPrefab } from "../../prefabs/Cursor";
-import createInputSystem from "../../systems/Input";
+import { MapPrefab } from "../../prefabs/MapPrefab";
+import createCursorSystem from "../../systems/CursorSystem";
+import { CursorPrefab } from "../../prefabs/CursorPrefab";
+import createInputSystem from "../../systems/InputSystem";
 import { EventBus } from "../../EventBus";
 import { title } from "process";
 import { toast } from "@/hooks/use-toast";

@@ -56,6 +56,7 @@ import { ScrollArea } from "./components/ui/scroll-area";
 import { EventBus } from "./game/EventBus";
 import LayersPopover from "./components/editor/float-menu/layers-popover/LayersPopover";
 import TilesetPopover from "./components/editor/float-menu/tiles-popover/TilesetPopover";
+import BottomFloatMenu from "./components/editor/float-menu/BottomFloatMenu";
 function App() {
     const { mapMeta } = useContext(SimulationContext);
     // The sprite can only be moved in the MainMenu Scene
@@ -172,23 +173,8 @@ function App() {
                     </ContextMenuContent>
                 </ContextMenu>
             </div>
-            <div
-                className="fixed bottom-0 right-[50%] translate-x-[50%] p-4
-            "
-            >
-                <Menubar>
-                    <MenubarMenu>
-                        <LayersPopover />
-                        <TilesetPopover />
-                        <MenubarTrigger>
-                            <Brain />
-                        </MenubarTrigger>
-                        <MenubarTrigger>
-                            <Box />
-                        </MenubarTrigger>
-                    </MenubarMenu>
-                </Menubar>{" "}
-            </div>
+
+            <BottomFloatMenu />
         </div>
     );
 }

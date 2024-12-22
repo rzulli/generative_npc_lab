@@ -3,7 +3,7 @@ import { useState, useCallback } from "react";
 import { toast } from "../hooks/use-toast";
 import SimulationService from "../api/Simulation";
 import { EventBus } from "@/game/EventBus";
-import { Map } from "@/game/prefabs/Map";
+import { Map } from "@/game/prefabs/MapPrefab";
 
 interface SimulationProperties {
     object_uid: string;
