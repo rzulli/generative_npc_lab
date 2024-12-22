@@ -14,16 +14,20 @@ enum Textures {
 import { createWorld, addEntity, addComponent, IWorld } from "bitecs";
 import Rotation from "@/game/components/Rotation";
 
-export const PlayerPrefab = (world: IWorld) => {
-    const prefab = addEntity(world);
+export const PlayerPrefab = (scene: Phaser.Scene) => {
+    const prefab = addEntity(scene.world);
 
-    addComponent(world, Position, prefab);
-    addComponent(world, Velocity, prefab);
-    addComponent(world, Rotation, prefab);
-    addComponent(world, Sprite, prefab);
-    addComponent(world, Player, prefab);
-    addComponent(world, Input, prefab);
+    addComponent(scene.world, Position, prefab);
+    addComponent(scene.world, Velocity, prefab);
+    addComponent(scene.world, Rotation, prefab);
+    addComponent(scene.world, Sprite, prefab);
+    addComponent(scene.world, Player, prefab);
+    addComponent(scene.world, Input, prefab);
 
+    Player.physics[prefab] = scene.physics.add
+        .sprite(800, 288, "atlas", "misa-front")
+        .setSize(30, 40)
+        .setOffset(0, 0);
     Position.x[prefab] = 100;
     Position.y[prefab] = 100;
     Sprite.texture[prefab] = Textures.TankBlue;

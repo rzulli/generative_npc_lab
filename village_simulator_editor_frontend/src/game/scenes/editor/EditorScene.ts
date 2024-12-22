@@ -24,6 +24,8 @@ import createCursorSystem from "../../systems/Cursor";
 import { CursorPrefab } from "../../prefabs/Cursor";
 import createInputSystem from "../../systems/Input";
 import { EventBus } from "../../EventBus";
+import { title } from "process";
+import { toast } from "@/hooks/use-toast";
 export class EditorScene extends Scene {
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
 
@@ -43,24 +45,51 @@ export class EditorScene extends Scene {
 
     preload() {
         this.load.image("tank-blue", "assets/tank_blue.png");
+        this.load.image("background2", "assets/simulation/background.jpg");
     }
 
     create() {
         const { width, height } = this.scale;
-
+        this.logo = this.add.image(512, 300, "background2").setDepth(-100);
         this.world = createWorld();
-        let player = PlayerPrefab(this.world);
+        this.physics.world.setBounds(0, 0, 2000, 2000);
+
+        let player = PlayerPrefab(this);
+        const camera = this.cameras.main;
+        this.cameras.main.setBounds(0, 0, 2000, 2000);
+        camera.startFollow(Player.physics[player]);
 
         // const map = addEntity(this.world);
-        EventBus.addListener("ON_LOAD_MAP_DATA_SUCCESS", (map) => {
-            console.log(map, this);
-
-            this.sys.cache.tilemap.add("map", {
-                format: 1, //1 - TILEDJSON
-                data: map,
-            });
-            EventBus.emit("ON_ADD_TILEMAP");
-        });
+        EventBus.addListener(
+            "ON_LOAD_MAP_DATA_SUCCESS",
+            (map, tries: number = 0) => {
+                console.log(map, this);
+                if (tries > 5) {
+                    console.error("Max tries reached. Aborting");
+                    toast({
+                        title: "Error",
+                        messsage: "Loading failed. Please try again later",
+                    });
+                    return;
+                }
+                if (this.sys.cache == null) {
+                    console.error("Cache is null. Rescheduling event");
+                    setTimeout(() => {
+                        EventBus.emit(
+                            "ON_LOAD_MAP_DATA_SUCCESS",
+                            map,
+                            tries + 1
+                        );
+                    }, 1000);
+                    return;
+                }
+                this.sys.cache.tilemap.add("map", {
+                    format: 1, //1 - TILEDJSON
+                    data: map,
+                });
+                EventBus.emit("ON_ADD_TILEMAP");
+            }
+        );
         EventBus.addListener("SELECT_LAYER", (layer_name) => {
             this.updateView(layer_name);
         });
@@ -71,6 +100,7 @@ export class EditorScene extends Scene {
         this.tilemapSystem = createTilemapSystem();
 
         this.playerSystem = createPlayerSystem(this.cursors);
+
         this.spriteSystem = createSpriteSystem(this, [
             "tank-blue",
             "tank-green",

@@ -3,6 +3,7 @@ import { useState, useCallback } from "react";
 import { toast } from "../hooks/use-toast";
 import SimulationService from "../api/Simulation";
 import { EventBus } from "@/game/EventBus";
+import { Map } from "@/game/prefabs/Map";
 
 interface SimulationProperties {
     object_uid: string;
@@ -80,8 +81,8 @@ function useSimulation(initialSimulation: SimulationProperties | null) {
             SimulationService()
                 .getMap(map_uid, version)
                 .then((response) => {
-                    console.log(response.data);
-                    setMapMeta(response.data);
+                    console.log(response.data.mapState);
+
                     EventBus.emit(
                         "ON_LOAD_MAP_DATA_SUCCESS",
                         response.data.mapState
@@ -91,6 +92,14 @@ function useSimulation(initialSimulation: SimulationProperties | null) {
         },
         [simulationMeta.map_uid]
     );
+    EventBus.removeListener("ON_MAPSTATE_UPDATE");
+
+    EventBus.addListener("ON_MAPSTATE_UPDATE", () => {
+        console.log("Handling ON_MAP_STATE_UPDATE");
+        let newMapMeta = { ...mapMeta };
+        newMapMeta.mapState = Map.instance;
+        setMapMeta(newMapMeta);
+    });
 
     return {
         simulationMeta,

@@ -13,7 +13,10 @@ import { CursorEvent } from "../prefabs/Cursor";
 import { DEBOUNCE_TIMEOUT } from "../consts";
 
 export class CursorEventHandler {
-    private currentEvent: CursorEvent = CursorEvent.NONE;
+    private currentEvent: { event: CursorEvent; data: any } = {
+        event: CursorEvent.NONE,
+        data: null,
+    };
     debounceActions: CursorEvent[] = [];
 
     constructor() {
@@ -26,20 +29,24 @@ export class CursorEventHandler {
         EventBus.on("ON_CANCEL_TOOL", () => {
             this.emit(CursorEvent.CANCEL);
         });
+        EventBus.on("ON_SELECT_TILE", (data) => {
+            console.log("ahsduahsudhaus");
+            this.emit(CursorEvent.SELECT_TILE, data);
+        });
     }
 
-    handle(): CursorEvent {
+    handle(): { event: CursorEvent; data: any } {
         const event = this.currentEvent;
-        this.currentEvent = CursorEvent.NONE;
+        this.currentEvent = { event: CursorEvent.NONE, data: null };
         return event;
     }
 
-    emit(event: CursorEvent) {
+    emit(event: CursorEvent, data: any = null) {
         if (
             !this.debounceActions.includes(event) &&
             event != CursorEvent.NONE
         ) {
-            this.currentEvent = event;
+            this.currentEvent = { event, data };
             this.debounceActions.push(event);
             setTimeout(() => {
                 this.debounceActions = this.debounceActions.filter(
@@ -65,7 +72,7 @@ export default function createCursorSystem() {
             const id = cursors[i];
             if (StateMachineComponent.current[id]) {
                 const event = eventHandler.handle();
-                if (event != CursorEvent.NONE) {
+                if (event.event != CursorEvent.NONE) {
                     console.log("Handling ", event);
                 }
                 StateMachineComponent.current[id].send(event);

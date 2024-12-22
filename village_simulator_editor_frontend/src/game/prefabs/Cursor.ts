@@ -52,7 +52,8 @@ class Cursor {
 
     private mode: CursorMode;
     private commandStack: [Command] = [];
-
+    currentTileSelected: number | null = null;
+    private isVisible: boolean = false;
     constructor(context: InitialStateContext) {
         this.context = context;
         this.marker = context.scene.add.graphics();
@@ -67,19 +68,19 @@ class Cursor {
 
     updateStyle() {
         const style = styleMode[this.mode];
-        console.log(styleMode, "", style);
+        // console.log(styleMode, "", style);
         this.marker.clear();
         this.marker.lineStyle(style.lineWidth, style.color, style.alpha);
     }
 
     updatePointerPosition(worldPoint: Phaser.Math.Vector2 | object) {
         if (
-            Tilemap.map[this.context.map_eid] == null ||
-            Tilemap.map[this.context.map_eid].layers.length == 0
+            Tilemap.map[this.context.map_eid].map == null ||
+            Tilemap.map[this.context.map_eid].map.layers.length == 0
         )
             return;
 
-        const map = Tilemap.map[this.context.map_eid];
+        const map = Tilemap.map[this.context.map_eid].map;
         // Rounds down to nearest tile
         this.pointerCoord.x = map.worldToTileX(worldPoint.x);
         this.pointerCoord.y = map.worldToTileY(worldPoint.y);
@@ -87,6 +88,17 @@ class Cursor {
         // Snap to tile coordinates, but in world space
         this.pointerTile.x = map.tileToWorldX(this.pointerCoord.x);
         this.pointerTile.y = map.tileToWorldY(this.pointerCoord.y);
+
+        if (
+            this.pointerCoord.x > map.width ||
+            this.pointerCoord.y > map.height ||
+            this.pointerCoord.x < 0 ||
+            this.pointerCoord.y < 0
+        ) {
+            this.isVisible = false;
+        } else {
+            this.isVisible = true;
+        }
     }
 
     hasAnchor() {
@@ -100,7 +112,7 @@ class Cursor {
     }
 
     executeCommand(command: Command) {
-        console.log(command);
+        // console.log(command);
         this.commandStack.push(command);
         command.execute();
     }
@@ -111,6 +123,9 @@ class Cursor {
 
     updateState() {
         this.marker.clear();
+        if (!this.isVisible) {
+            return;
+        }
         this.area = { x: 1, y: 1 };
         switch (this.mode) {
             case CursorMode.single:
@@ -138,10 +153,10 @@ class Cursor {
                         ),
                     };
                     this.areaTile = {
-                        x: Tilemap.map[this.context.map_eid].worldToTileX(
+                        x: Tilemap.map[this.context.map_eid].map.worldToTileX(
                             this.area.x
                         ),
-                        y: Tilemap.map[this.context.map_eid].worldToTileY(
+                        y: Tilemap.map[this.context.map_eid].map.worldToTileY(
                             this.area.y
                         ),
                     };
@@ -169,6 +184,7 @@ export enum CursorEvent {
     PLACE_TILE,
     SELECT_AREA,
     ON_MOUSE_DOWN,
+    SELECT_TILE,
 }
 interface IdleCursorContext {
     eid: number;
@@ -188,13 +204,20 @@ class SelectAreaCursorState extends State<IdleCursorContext, CursorEvent> {
     onEnter(event?: CursorEvent | undefined): void {
         this.context.cursor.setMode(CursorMode.area);
     }
-    onEvent(event: CursorEvent): State<IdleCursorContext, CursorEvent> | null {
+    onEvent(event: {
+        event: CursorEvent;
+        data: any;
+    }): State<IdleCursorContext, CursorEvent> | null {
         updatePointerPosition(this.context);
 
         switch (event) {
             case CursorEvent.CANCEL:
                 this.context.cursor.resetAnchor();
                 return new IdleCursorState(this.context);
+            case CursorEvent.SELECT_TILE:
+                console.log("ihujaisudhaishdaishdia");
+                this.context.cursor.currentTileSelected = event.data.tile_id;
+                return null;
             case CursorEvent.ON_MOUSE_DOWN:
                 this.context.cursor.updateState();
                 if (!this.context.cursor.hasAnchor()) {
@@ -226,21 +249,32 @@ class PlaceTileCursorState extends State<IdleCursorContext, CursorEvent> {
     onEnter(event?: CursorEvent | undefined): void {
         this.context.cursor.setMode(CursorMode.place);
     }
-    onEvent(event: CursorEvent): State<IdleCursorContext, CursorEvent> | null {
+    onEvent(event: {
+        event: CursorEvent;
+        data: any;
+    }): State<IdleCursorContext, CursorEvent> | null {
         updatePointerPosition(this.context);
 
-        switch (event) {
+        switch (event.event) {
             case CursorEvent.CANCEL:
                 return new IdleCursorState(this.context);
+            case CursorEvent.SELECT_TILE:
+                console.log("ihujaisudhaishdaishdia");
+                this.context.cursor.currentTileSelected = event.data.tile_id;
+                return null;
             case CursorEvent.ON_MOUSE_DOWN:
-                this.context.cursor.executeCommand(
-                    PlaceTileCommand(
-                        this.context.map_eid,
-                        8805,
-                        this.context.cursor.pointerCoord,
-                        "Wall"
-                    )
-                );
+                console.log(this.context.cursor.currentTileSelected);
+                if (this.context.cursor.currentTileSelected != null) {
+                    this.context.cursor.executeCommand(
+                        PlaceTileCommand(
+                            this.context.map_eid,
+                            this.context.cursor.currentTileSelected,
+                            this.context.cursor.pointerCoord,
+                            "First Layer"
+                        )
+                    );
+                }
+                return null;
             default:
                 this.context.cursor.updateState();
                 return null;
@@ -251,59 +285,23 @@ class IdleCursorState extends State<IdleCursorContext, CursorEvent> {
     onEnter(event?: CursorEvent | undefined): void {
         this.context.cursor.setMode(CursorMode.single);
     }
-    onEvent(event: CursorEvent): State<IdleCursorContext, CursorEvent> | null {
+    onEvent(event: {
+        event: CursorEvent;
+        data: any;
+    }): State<IdleCursorContext, CursorEvent> | null {
         updatePointerPosition(this.context);
-        if (this.context.scene.input.manager.activePointer.isDown) {
-            const map = Tilemap.map[this.context.map_eid];
-            console.log(
-                map,
-                this.context.map_eid,
-                this.context.cursor.pointerTile.x,
-                this.context.cursor.pointerTile.y
-            );
-            console.log(
-                Tilemap.map[this.context.map_eid].getTileAt(
-                    this.context.cursor.pointerCoord.x,
-                    this.context.cursor.pointerCoord.y,
-                    false,
-                    "Wall"
-                )?.index,
 
-                Tilemap.map[this.context.map_eid].getTileAt(
-                    this.context.cursor.pointerCoord.x,
-                    this.context.cursor.pointerCoord.y,
-                    false,
-                    "Sector Blocks"
-                )?.index,
-                Tilemap.map[this.context.map_eid].getTileAt(
-                    this.context.cursor.pointerCoord.x,
-                    this.context.cursor.pointerCoord.y,
-                    false,
-                    "Arena Blocks"
-                )?.index,
-                Tilemap.map[this.context.map_eid].getTileAt(
-                    this.context.cursor.pointerCoord.x,
-                    this.context.cursor.pointerCoord.y,
-                    false,
-                    "World Blocks"
-                )?.index
-            );
-
-            // Fill the tiles within an area with sign posts (tile id = 46)
-            Tilemap.map[this.context.map_eid].fill(
-                8651,
-                this.context.cursor.pointerCoord.x,
-                this.context.cursor.pointerCoord.y,
-                1,
-                1,
-                true,
-                "Wall"
-            );
-        }
         this.context.cursor.updateState();
-        switch (event) {
+        switch (event.event) {
             case CursorEvent.PLACE_TILE:
                 return new PlaceTileCursorState(this.context);
+            case CursorEvent.SELECT_TILE:
+                console.log(
+                    "ihujaisudhaishdaishdia",
+                    this.context.cursor.currentTileSelected
+                );
+                this.context.cursor.currentTileSelected = event.data.tile_id;
+                return null;
             case CursorEvent.SELECT_AREA:
                 return new SelectAreaCursorState(this.context);
             default:

@@ -44,6 +44,8 @@ import { MapSelectorCombobox } from "./components/editor/simulation-menu/NewSimu
 import {
     Box,
     Brain,
+    Eye,
+    EyeClosed,
     GripHorizontal,
     Layers,
     PersonStanding,
@@ -52,6 +54,8 @@ import {
 import { map } from "zod";
 import { ScrollArea } from "./components/ui/scroll-area";
 import { EventBus } from "./game/EventBus";
+import LayersPopover from "./components/editor/float-menu/layers-popover/LayersPopover";
+import TilesetPopover from "./components/editor/float-menu/tiles-popover/TilesetPopover";
 function App() {
     const { mapMeta } = useContext(SimulationContext);
     // The sprite can only be moved in the MainMenu Scene
@@ -134,6 +138,7 @@ function App() {
     return (
         <div className="overflow-hidden min-h-[100vh] max-h-[100vh] bg-slate-700">
             <EditorMainMenu />
+
             {/* <PhaserGame ref={phaserRef} currentActiveScene={currentScene} />
             <div>
                 <div>
@@ -173,40 +178,8 @@ function App() {
             >
                 <Menubar>
                     <MenubarMenu>
-                        <MenubarTrigger>
-                            <Popover>
-                                <PopoverTrigger>
-                                    <Layers />
-                                </PopoverTrigger>
-                                <PopoverContent>
-                                    <div className="text-left font-bold">
-                                        Layers
-                                    </div>
-                                    <ScrollArea className="p-3 h-[50vh]">
-                                        {mapMeta.mapState.layers &&
-                                            mapMeta.mapState.layers.map(
-                                                (layer) => (
-                                                    <div
-                                                        className="p-2 mb-3 rounded-md flex gap-5 hover:bg-slate-200 items-center"
-                                                        onClick={() =>
-                                                            EventBus.emit(
-                                                                "SELECT_LAYER",
-                                                                layer.name
-                                                            )
-                                                        }
-                                                    >
-                                                        <GripHorizontal className="w-4" />
-                                                        {layer.name}
-                                                    </div>
-                                                )
-                                            )}
-                                    </ScrollArea>
-                                </PopoverContent>
-                            </Popover>
-                        </MenubarTrigger>
-                        <MenubarTrigger>
-                            <SwatchBook />
-                        </MenubarTrigger>
+                        <LayersPopover />
+                        <TilesetPopover />
                         <MenubarTrigger>
                             <Brain />
                         </MenubarTrigger>

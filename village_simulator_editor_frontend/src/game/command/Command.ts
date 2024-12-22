@@ -1,4 +1,5 @@
 import Tilemap from "../components/Tilemap";
+import { EventBus } from "../EventBus";
 
 export class Command {
     execute: Function;
@@ -26,7 +27,21 @@ export function PlaceTileCommand(
             true,
             layer
         );
-        Tilemap.map[map_eid].fill(tileId, coord.x, coord.y, 1, 1, true, layer);
+        const l = Tilemap.map[map_eid].map.getLayer(layer);
+        if (l == undefined) {
+            console.error("Layer not found " + layer);
+            return;
+        }
+        Tilemap.map[map_eid].map.fill(
+            tileId,
+            coord.x,
+            coord.y,
+            1,
+            1,
+            true,
+            layer
+        );
+        EventBus.emit("ON_MAPSTATE_UPDATE", this);
     });
 }
 
@@ -55,7 +70,7 @@ export function PlaceTileAreaCommand(
             true,
             layer
         );
-        Tilemap.map[map_eid].fill(
+        Tilemap.map[map_eid].map.fill(
             tileId,
             Math.max(coord.x - area.x + 1, 0),
             Math.max(coord.y - area.y + 1, 0),
@@ -64,6 +79,7 @@ export function PlaceTileAreaCommand(
             true,
             layer
         );
+        EventBus.emit("ON_MAPSTATE_UPDATE", this);
     });
 }
 

@@ -19,17 +19,100 @@ import { State, StateMachine } from "/src/lib/stateMachine/StateMachine";
 import { tile_width } from "../consts";
 import Cursor from "../components/Cursor";
 import { TilemapEvent } from "../systems/TileMap";
+import { EventBus } from "../EventBus";
 
-class Map {
-    private map: Phaser.Tilemaps.Tilemap;
+import {} from "ph";
+class EditorTool {
+    protected map: Map;
+    constructor(map: Map) {
+        this.map = map;
+    }
+}
+class IsolateLayerTool extends EditorTool {
+    private currentLayerFocused: number;
+
+    constructor(map: Map) {
+        super(map);
+
+        this.currentLayerFocused = -1;
+        EventBus.addListener("RESET_VIEW", () => {
+            this.resetView();
+        });
+        EventBus.addListener("FOCUS_LAYER", (index) => {
+            this.focusLayer(index);
+        });
+        EventBus.addListener("SHOW_LAYER", (index) => {
+            this.showLayer(index);
+        });
+        EventBus.addListener("HIDE_LAYER", (index) => {
+            this.hideLayer(index);
+        });
+    }
+
+    resetView() {
+        if (this.currentLayerFocused != -1) {
+            Object.entries(this.map.layers).forEach(([key, value]) => {
+                this.map.setLayerAlpha(key, 1.0);
+            });
+            this.currentLayerFocused = -1;
+        }
+    }
+
+    focusLayer(layerIndex: number) {
+        console.log(this);
+        this.resetView();
+        this.currentLayerFocused = layerIndex;
+        Object.entries(this.map.layers).forEach(([key, value], index) => {
+            if (index == layerIndex) {
+                return;
+            }
+            this.map.setLayerAlpha(key, 0.1);
+        });
+
+        console.log(this.map.map.layers);
+    }
+
+    hideLayer(layerIndex: number | string) {
+        console.log(this.map.map, layerIndex);
+        Map.instance.hideLayer(layerIndex);
+
+        EventBus.emit("ON_MAPSTATE_UPDATE");
+    }
+    showLayer(layerIndex: number | string) {
+        Map.instance.showLayer(layerIndex);
+
+        EventBus.emit("ON_MAPSTATE_UPDATE");
+    }
+}
+interface MapTileset extends Phaser.Tilemaps.Tileset {
+    url: string;
+}
+
+export class Map {
+    map: Phaser.Tilemaps.Tilemap;
     private scene: Phaser.Scene;
-    private tileset: Record<string, Phaser.Tilemaps.Tileset>;
+    private tileset: Record<string, MapTileset>;
     private layers: Record<string, Phaser.Tilemaps.TilemapLayer>;
+    private tileLayers: [string] | [] = [];
+    private dataLayers: [string] | [] = [];
+    private tools: [EditorTool] | [];
+
+    private currentGid: number = 0;
+    private static instance: Map;
 
     constructor(scene: Phaser.Scene) {
+        if (Map.instance) {
+            return Map.instance; // Retorna a instância existente
+        }
+        Map.instance = this;
         this.scene = scene;
+        this.tileset = {};
+        this.layers = {};
+        this.tools = [];
     }
+
     buildMap(withData: string | null) {
+        console.log(withData, this.map);
         if (withData == null) {
             //empty map
             this.map = this.scene.make.tilemap();
@@ -38,30 +121,65 @@ class Map {
         }
         return this;
     }
-
-    withTilesetFromCache(tilesetName: string, cacheKey: string) {
-        const tilesetResult = this.map.addTilesetImage(tilesetName, cacheKey);
-        if (tilesetResult == null) {
-            console.error(
-                "Tileset not found in cache: ",
-                tilesetName,
-                cacheKey
-            );
-            return this;
-        }
-        this.tileset[tilesetName] = tilesetResult;
+    async withTilesets(
+        tilesets: { name: string; url: string }[]
+    ): Promise<this> {
+        const promises = tilesets.map((tileset) =>
+            this.withTileset(tileset.name, tileset.url)
+        );
+        await Promise.all(promises);
         return this;
     }
-
-    withExternalTileset(tilesetName: string, url: string) {
-        this.scene.load.image(tilesetName, url);
-        return this.withTilesetFromCache(tilesetName, tilesetName);
+    async withTileset(tilesetName: string, url: string): Promise<this> {
+        return new Promise((resolve, reject) => {
+            let loader = this.scene.load.image(tilesetName, url);
+            console.log(tilesetName, url);
+            this.tileset[tilesetName] = {};
+            loader.once("complete", () => {
+                const tilesetResult = this.map.addTilesetImage(
+                    tilesetName,
+                    tilesetName
+                );
+                if (tilesetResult == null) {
+                    console.error("Tileset not found in cache: ", tilesetName);
+                    reject(
+                        new Error("Tileset not found in cache: " + tilesetName)
+                    );
+                    return;
+                }
+                tilesetResult.firstgid = this.currentGid;
+                this.currentGid += tilesetResult.total;
+                this.tileset[tilesetName] = { ...tilesetResult, url: url };
+                console.log(tilesetResult.firstgid, this.tileset[tilesetName]);
+                // this.map.layers.map((obj, i) =>
+                //     this.map.layers[i].tilemapLayer.tileset.push(tilesetResult)
+                // );
+                EventBus.emit("ON_MAPSTATE_UPDATE", this);
+                resolve(this);
+            });
+            loader.start();
+        });
     }
 
-    withLayer(
+    withDataLayer(layerName: string, offset: { x: number; y: number }) {
+        if (layerName in this.layers) {
+            console.error("Duplicate layer name: ", layerName);
+            return this;
+        }
+        const layer = this.map.createLayer(layerName, null, offset.x, offset.y);
+        if (layer == null) {
+            console.error("Layer not created: ", layerName);
+            return this;
+        }
+        this.layers[layerName] = layer;
+        this.dataLayers.push(layerName);
+        return this;
+    }
+    withTileLayer(
         layerName: string,
-        tilesetName: string | string[],
-        offset: { x: number; y: number } | null
+        tiledImportLayer: string | null6 = null,
+        offset: { x: number; y: number } | null = null,
+        depth: number | null = null
     ) {
         if (layerName in this.layers) {
             console.error("Duplicate layer name: ", layerName);
@@ -71,223 +189,164 @@ class Map {
         if (offset == null) {
             layerOffset = { x: 0, y: 0 };
         }
-        const layer = this.map.createLayer(
-            layerName,
-            tilesetName,
-            layerOffset.x,
-            layerOffset.y
+        let layer;
+        console.log(
+            "ajsdiajaisdjasidjiasida aquiui",
+            Object.keys(this.tileset)
         );
+        if (tiledImportLayer != null) {
+            // Create Phaser.Tilemaps.TileLayer
+            layer = this.map.createLayer(
+                tiledImportLayer,
+                Object.keys(this.tileset),
+                layerOffset.x,
+                layerOffset.y
+            );
+        } else {
+            layer = this.map.createBlankLayer(
+                layerName,
+                Object.keys(this.tileset),
+                layerOffset.x,
+                layerOffset.y
+            );
+        }
+        this.tileLayers.push(layerName);
+        console.log(layer);
         if (layer == null) {
             console.error("Layer not created: ", layerName);
             return this;
         }
+
+        if (depth != null && depth != 0) {
+            layer.setDepth(depth);
+        }
+
         this.layers[layerName] = layer;
+        console.log(this.map);
         return this;
+    }
+
+    withCollisionLayer(layerName: string, properties: any) {
+        if (!(layerName in this.layers)) {
+            console.error(
+                "Adding collision to layer name: ",
+                layerName,
+                " layer not found"
+            );
+            return this;
+        }
+        this.layers[layerName].setCollisionByProperty(properties);
+        return this;
+    }
+
+    withTool(tool: typeof EditorTool) {
+        this.tools.push(new tool(this));
+        return this;
+    }
+
+    setLayerAlpha(layer: number | string, alpha: number) {
+        console.log("ASDASDIOAOSDIOA", layer, alpha);
+        if (typeof layer == "string") {
+            this.layers[layer].alpha = alpha;
+        } else if (
+            typeof layer == "number" &&
+            this.map.getLayer(layer) != null
+        ) {
+            this.map.getLayer(layer).alpha = alpha;
+        }
+    }
+
+    showLayer(layer: number | string) {
+        if (typeof layer == "string") {
+            this.layers[layer].visible = true;
+        } else if (
+            typeof layer == "number" &&
+            this.map.getLayer(layer) != null
+        ) {
+            this.map.getLayer(layer).visible = true;
+        }
+    }
+
+    hideLayer(layer: number | string) {
+        console.log("ASDASDIOAOSDIOA", layer);
+        if (typeof layer == "string") {
+            this.layers[layer].visible = false;
+        } else if (
+            typeof layer == "number" &&
+            this.map.getLayer(layer) != null
+        ) {
+            this.map.getLayer(layer).visible = false;
+        }
     }
 }
 class EditableMap {
     constructor() {}
 }
-function createMap(scene: Phaser.Scene) {
-    //  When all the assets have loaded, it's often worth creating global objects here that the rest of the game can use.
-    //  For example, you can define global animations here, so we can use them in other scenes.
-    let map = scene.make.tilemap({ key: "map" });
-    // Joon: Logging map is really helpful for debugging here:
-    console.log(map);
+function createMap(scene: Phaser.Scene, key) {
+    const newMap = new Map(scene).buildMap(key);
+    newMap
+        .withTilesets([
+            {
+                name: "blocks_1",
+                url: "assets/simulation/the_ville/visuals/map_assets/blocks/blocks_1.png",
+            },
+            {
+                name: "walls",
+                url: "assets/simulation/the_ville/visuals/map_assets/v1/Room_Builder_32x32.png",
+            },
+            {
+                name: "interiors_pt1",
+                url: "assets/simulation/the_ville/visuals/map_assets/v1/interiors_pt1.png",
+            },
+            {
+                name: "interiors_pt2",
+                url: "assets/simulation/the_ville/visuals/map_assets/v1/interiors_pt2.png",
+            },
+            {
+                name: "interiors_pt3",
+                url: "assets/simulation/the_ville/visuals/map_assets/v1/interiors_pt3.png",
+            },
+        ])
+        .then(() => {
+            newMap.withTileLayer("First Layer");
+        });
 
-    // The first parameter is the name you gave to the tileset in Tiled and then
-    // the key of the tileset image in Phaser's cache (i.e. the name you used in
-    // preload)
-    // Joon: for the first parameter here, really take a look at the
-    //       console.log(map) output. You need to make sure that the name
-    //       matches.
-    const collisions = map.addTilesetImage("blocks", "blocks_1");
-    const walls = map.addTilesetImage("Room_Builder_32x32", "walls");
-    const interiors_pt1 = map.addTilesetImage("interiors_pt1", "interiors_pt1");
-    const interiors_pt2 = map.addTilesetImage("interiors_pt2", "interiors_pt2");
-    const interiors_pt3 = map.addTilesetImage("interiors_pt3", "interiors_pt3");
-    const interiors_pt4 = map.addTilesetImage("interiors_pt4", "interiors_pt4");
-    const interiors_pt5 = map.addTilesetImage("interiors_pt5", "interiors_pt5");
-    const CuteRPG_Field_B = map.addTilesetImage(
-        "CuteRPG_Field_B",
-        "CuteRPG_Field_B"
-    );
-    const CuteRPG_Field_C = map.addTilesetImage(
-        "CuteRPG_Field_C",
-        "CuteRPG_Field_C"
-    );
-    const CuteRPG_Harbor_C = map.addTilesetImage(
-        "CuteRPG_Harbor_C",
-        "CuteRPG_Harbor_C"
-    );
-    const CuteRPG_Village_B = map.addTilesetImage(
-        "CuteRPG_Village_B",
-        "CuteRPG_Village_B"
-    );
-    const CuteRPG_Forest_B = map.addTilesetImage(
-        "CuteRPG_Forest_B",
-        "CuteRPG_Forest_B"
-    );
-    const CuteRPG_Desert_C = map.addTilesetImage(
-        "CuteRPG_Desert_C",
-        "CuteRPG_Desert_C"
-    );
-    const CuteRPG_Mountains_B = map.addTilesetImage(
-        "CuteRPG_Mountains_B",
-        "CuteRPG_Mountains_B"
-    );
-    const CuteRPG_Desert_B = map.addTilesetImage(
-        "CuteRPG_Desert_B",
-        "CuteRPG_Desert_B"
-    );
-    const CuteRPG_Forest_C = map.addTilesetImage(
-        "CuteRPG_Forest_C",
-        "CuteRPG_Forest_C"
-    );
-
-    // The first parameter is the layer name (or index) taken from Tiled, the
-    // second parameter is the tileset you set above, and the final two
-    // parameters are the x, y coordinate.
-    // Joon: The "layer name" that comes as the first parameter value
-    //       literally is taken from our Tiled layer name. So to find out what
-    //       they are; you actually need to open up tiled and see how you
-    //       named things there.
-    let tileset_group = [
-        CuteRPG_Field_B,
-        CuteRPG_Field_C,
-        CuteRPG_Harbor_C,
-        CuteRPG_Village_B,
-        CuteRPG_Forest_B,
-        CuteRPG_Desert_C,
-        CuteRPG_Mountains_B,
-        CuteRPG_Desert_B,
-        CuteRPG_Forest_C,
-        interiors_pt1,
-        interiors_pt2,
-        interiors_pt3,
-        interiors_pt4,
-        interiors_pt5,
-        walls,
-    ];
-
-    return [map, tileset_group, collisions];
+    return newMap;
 }
 
-function loadMapData(map, tileset_group, collisions) {
-    const bottomGroundLayer = map.createLayer(
-        "Bottom Ground",
-        tileset_group,
-        0,
-        0
-    );
-    const exteriorGroundLayer = map.createLayer(
-        "Exterior Ground",
-        tileset_group,
-        0,
-        0
-    );
-    const exteriorDecorationL1Layer = map.createLayer(
-        "Exterior Decoration L1",
-        tileset_group,
-        0,
-        0
-    );
-    const exteriorDecorationL2Layer = map.createLayer(
-        "Exterior Decoration L2",
-        tileset_group,
-        0,
-        0
-    );
-    const interiorGroundLayer = map.createLayer(
-        "Interior Ground",
-        tileset_group,
-        0,
-        0
-    );
-    const wallLayer = map.createLayer("Wall", tileset_group, 0, 0);
-    const interiorFurnitureL1Layer = map.createLayer(
-        "Interior Furniture L1",
-        tileset_group,
-        0,
-        0
-    );
-    const interiorFurnitureL2Layer = map.createLayer(
-        "Interior Furniture L2 ",
-        tileset_group,
-        0,
-        0
-    );
-    const foregroundL1Layer = map.createLayer(
-        "Foreground L1",
-        tileset_group,
-        0,
-        0
-    );
-    const foregroundL2Layer = map.createLayer(
-        "Foreground L2",
-        tileset_group,
-        0,
-        0
-    );
-    const focusedLayers = [
-        bottomGroundLayer,
-        exteriorGroundLayer,
-        exteriorDecorationL1Layer,
-        exteriorDecorationL2Layer,
-        interiorGroundLayer,
-        wallLayer,
-        interiorFurnitureL1Layer,
-        interiorFurnitureL2Layer,
-        foregroundL1Layer,
-        foregroundL2Layer,
-    ];
-    const sectorLayer = map.createLayer("Sector Blocks", "", 0, 0);
-    map.createLayer("Arena Blocks", "", 0, 0);
-    map.createLayer("World Blocks", "", 0, 0);
-
-    foregroundL1Layer.setDepth(2);
-    foregroundL2Layer.setDepth(2);
-
-    const collisionsLayer = map.createLayer("Collisions", collisions, 0, 0);
-    // const groundLayer = map.createLayer("Ground", walls, 0, 0);
-    // const indoorGroundLayer = map.createLayer("Indoor Ground", walls, 0, 0);
-    // const wallsLayer = map.createLayer("Walls", walls, 0, 0);
-    // const interiorsLayer = map.createLayer("Furnitures", interiors, 0, 0);
-    // const builtInLayer = map.createLayer("Built-ins", interiors, 0, 0);
-    // const appliancesLayer = map.createLayer("Appliances", interiors, 0, 0);
-    // const foregroundLayer = map.createLayer("Foreground", interiors, 0, 0);
-
-    // Joon : This is where you want to create a custom field for the tileset
-    //        in Tiled. Take a look at this guy's tutorial:
-    //        https://www.youtube.com/watch?v=MR2CvWxOEsw&ab_channel=MattWilber
-    collisionsLayer.setCollisionByProperty({ collide: true });
-    // By default, everything gets depth sorted on the screen in the order we
-    // created things. Here, we want the "Above Player" layer to sit on top of
-    // the player, so we explicitly give it a depth. Higher depths will sit on
-    // top of lower depth objects.
-    // Collisions layer should get a negative depth since we do not want to see
-    // it.
-    collisionsLayer.setDepth(-1);
-    // foregroundL1Layer.setDepth(2);
-    // foregroundL1Layer.setDepth(2);
+function loadMapData(map: Map) {
+    map.withTileLayer("Bottom Ground", { x: 0, y: 0 }, 0)
+        .withDataLayer("Sector Blocks", { x: 0, y: 0 }, 0)
+        .withDataLayer("Arena Blocks", { x: 0, y: 0 }, 0)
+        .withDataLayer("World Blocks", { x: 0, y: 0 }, 0)
+        .withTileLayer("Exterior Ground", { x: 0, y: 0 }, 0)
+        .withTileLayer("Exterior Decoration L1", { x: 0, y: 0 }, 0)
+        .withTileLayer("Exterior Decoration L2", { x: 0, y: 0 }, 0)
+        .withTileLayer("Interior Ground", { x: 0, y: 0 }, 0)
+        .withTileLayer("Wall", { x: 0, y: 0 }, 0)
+        .withTileLayer("Interior Furniture L1", { x: 0, y: 0 }, 0)
+        .withTileLayer("Interior Furniture L2 ", { x: 0, y: 0 }, 0)
+        .withTileLayer("Foreground L1", { x: 0, y: 0 }, 2)
+        .withTileLayer("Foreground L2", { x: 0, y: 0 }, 2)
+        .withDataLayer("Collisions", { x: 0, y: 0 })
+        .withCollisionLayer("Collisions", { collide: true })
+        .withTool(IsolateLayerTool);
 
     return map;
 }
 
 function loadMapDataSuccess(context: InitialStateContext) {
-    const [mapState, tileset_group, collisions] = createMap(context.scene);
-    const map = loadMapData(mapState, tileset_group, collisions);
-    Tilemap.map[context.eid] = map;
-    Tilemap.tileset_group[context.eid] = tileset_group;
-    Tilemap.collisions[context.eid] = collisions;
+    let map_instance = createMap(context.scene, "map");
+    map_instance = loadMapData(map_instance);
+    Tilemap.map[context.eid] = map_instance;
+
+    EventBus.emit("ON_MAPSTATE_UPDATE", map_instance);
 }
 
 function newMap(context: InitialStateContext) {
-    const [mapState, tileset_group, collisions] = createMap(context.scene);
-    console.log(mapState, tileset_group);
-    Tilemap.map[context.eid] = mapState;
-    Tilemap.tileset_group[context.eid] = tileset_group;
-    Tilemap.collisions[context.eid] = collisions;
+    let map_instance = createMap(context.scene);
+    Tilemap.map[context.eid] = map_instance;
+    EventBus.emit("ON_MAPSTATE_UPDATE", map_instance);
 }
 
 function resetView() {
@@ -306,7 +365,7 @@ interface IdleMapContext {
 }
 
 class IdleMapState extends State<IdleMapContext, TilemapEvent> {
-    onEvent(event: string): State<IdleMapContext, TilemapEvent> | null {
+    onEvent(event: TilemapEvent): State<IdleMapContext, TilemapEvent> | null {
         switch (event) {
             case TilemapEvent.NEW_MAP:
                 newMap(this.context);
@@ -328,9 +387,6 @@ class InitialState extends State<InitialStateContext, TilemapEvent> {
     onEvent(
         event: TilemapEvent
     ): State<InitialStateContext, TilemapEvent> | null {
-        let mapState = null;
-        let tileset_group = [];
-
         switch (event) {
             case TilemapEvent.NEW_MAP:
                 newMap(this.context);

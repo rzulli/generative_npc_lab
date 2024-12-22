@@ -57,7 +57,9 @@ export default function createTilemapSystem() {
             const id = entities[i];
             if (StateMachineComponent.current[id]) {
                 const event = eventHandler.handle();
-                console.log(event);
+                if (event != TilemapEvent.IDLE) {
+                    console.log("[TILEMAP] Handling", event);
+                }
 
                 StateMachineComponent.current[id].send(event);
             }
