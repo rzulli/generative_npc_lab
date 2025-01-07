@@ -1,25 +1,20 @@
-import Phaser, { Scene } from "phaser";
-import { defineSystem, defineQuery } from "bitecs";
+import Phaser, { Events, Scene } from "phaser";
+import { defineSystem, defineQuery, IWorld } from "bitecs";
 
 import Velocity from "../components/Velocity";
 import Player from "../components/Player";
 import Input, { Direction } from "../components/Input";
 import Rotation from "../components/Rotation";
 import Tilemap from "../components/Tilemap";
-import StateMachineComponent from "../components/StateMachine";
 import Cursor from "../components/Cursor";
 import { EventBus } from "../EventBus";
 import { CursorEvent } from "../objects/cursor/Cursor";
-import { DEBOUNCE_TIMEOUT } from "../consts";
+import { AbstractEventHandler } from "../../lib/stateMachine/AbstractEventHandler";
+import { createStateMachineSystem } from "./StateMachineSystem";
 
-export class CursorEventHandler {
-    private currentEvent: { event: CursorEvent; data: any } = {
-        event: CursorEvent.NONE,
-        data: null,
-    };
-    debounceActions: CursorEvent[] = [];
-
+class CursorEventHandler extends AbstractEventHandler<CursorEvent> {
     constructor() {
+        super();
         EventBus.on("ON_TOGGLE_PLACE_CURSOR", () => {
             this.emit(CursorEvent.PLACE_TILE);
         });
@@ -30,7 +25,6 @@ export class CursorEventHandler {
             this.emit(CursorEvent.CANCEL);
         });
         EventBus.on("ON_SELECT_TILE", (data) => {
-            console.log("ahsduahsudhaus");
             this.emit(CursorEvent.SELECT_TILE, data);
         });
     }
@@ -40,48 +34,20 @@ export class CursorEventHandler {
         this.currentEvent = { event: CursorEvent.NONE, data: null };
         return event;
     }
-
-    emit(
-        event: CursorEvent,
-        data: any = null,
-        debounce: number = DEBOUNCE_TIMEOUT
-    ) {
-        if (
-            !this.debounceActions.includes(event) &&
-            event != CursorEvent.NONE
-        ) {
-            this.currentEvent = { event, data };
-            this.debounceActions.push(event);
-            setTimeout(() => {
-                this.debounceActions = this.debounceActions.filter(
-                    (action) => action !== event
-                );
-            }, debounce);
-        }
-    }
 }
 
 export default function createCursorSystem() {
-    const mapQuery = defineQuery([Cursor, Tilemap, StateMachineComponent]);
     const cursorQuery = defineQuery([Cursor]);
     const eventHandler = new CursorEventHandler();
+    const stateMachineSystem = createStateMachineSystem<CursorEvent>();
 
-    return defineSystem((world, scene: Phaser.Scene) => {
+    return defineSystem((world: IWorld, scene: Phaser.Scene) => {
         const cursors = cursorQuery(world);
 
         if (scene.input.activePointer.isDown) {
             eventHandler.emit(CursorEvent.ON_MOUSE_DOWN, null, 100);
         }
-        for (let i = 0; i < cursors.length; ++i) {
-            const id = cursors[i];
-            if (StateMachineComponent.current[id]) {
-                const event = eventHandler.handle();
-                if (event.event != CursorEvent.NONE) {
-                    console.log("Handling ", event);
-                }
-                StateMachineComponent.current[id].send(event);
-            }
-        }
+        stateMachineSystem(world, cursors, eventHandler, CursorEvent.NONE);
 
         return world;
     });

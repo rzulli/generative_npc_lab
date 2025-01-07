@@ -1,7 +1,7 @@
 
 from flask import Flask, Blueprint, request,abort, url_for, jsonify
 
-from simulation_server.simulation_server import SimulationServer
+from village_simulator_backend.simulation_server.simulation_meta_server import SimulationMetaServer
 from bson import json_util
 
 # Criar um Blueprint para as rotas de usuários
@@ -13,7 +13,7 @@ def get_simulation_meta():
     print(data, "uid" in data)
     if "uid" in data:
         version = data["version"] if "version" in data else ""
-        sim_server = SimulationServer()
+        sim_server = SimulationMetaServer()
         map = sim_server.get_simulation_by_uid(data["uid"], version)
         print(map)
         if map:
@@ -27,7 +27,7 @@ def post_simulation_meta():
     if "version" in data and "uid" in data:
         abort(403)
     if "name" in data and "map_uid" in data:
-        sim_server = SimulationServer()
+        sim_server = SimulationMetaServer()
         response, uid  = sim_server.create_simulation(data["name"],data["map_uid"])
         if response:
             print(response)
@@ -38,7 +38,7 @@ def post_simulation_meta():
 @simulation_meta.route("/simulation/meta/list", methods=["GET"])
 def list_simulation_meta():
 
-    sim_server = SimulationServer()
+    sim_server = SimulationMetaServer()
     response = sim_server.list_simulation_meta()
     print(response)
     if response:

@@ -10,12 +10,13 @@ def get_db():
     """
     Configuration method to return db instance
     """
+    print(g)
     db = getattr(g, "_database", None)
     
     if db is None:
 
         db = g._database = MongoClient(current_app.config["MONGO_URI"]).village
-        
+    
     return db
 
 

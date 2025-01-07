@@ -1,4 +1,4 @@
-import { Cursor } from "../Cursor";
+import { Cursor, CursorEvent } from "../Cursor";
 import { IdleCursorContext } from "../../../prefabs/CursorPrefab";
 import { State } from "@/lib/stateMachine/StateMachine";
 import { IdleCursorState } from "./IdleCursorState";
@@ -8,8 +8,8 @@ export interface InitialStateContext {
     scene: Phaser.Scene;
     map_eid: number;
 }
-export class InitialState extends State<InitialStateContext, string> {
-    onEvent(event: string): State<IdleCursorContext, string> | null {
+export class InitialState extends State<InitialStateContext, CursorEvent> {
+    onEvent(event: CursorEvent): State<IdleCursorContext, CursorEvent> | null {
         console.log(this.context);
         return new IdleCursorState({
             ...this.context,

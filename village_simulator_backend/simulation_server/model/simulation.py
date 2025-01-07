@@ -35,6 +35,22 @@ class SimulationMeta(BaseModel):
     description: Optional[str] = None
     map_uid: str
     map_name: str
+    map_version: int
+    persona: List[str]  # List of PersonaMeta.object_uid
+    created_at: datetime
+    updated_at: datetime
+    deleted: bool = False
+    deleted_at: Optional[datetime] = None
+    
+class SimulationInstance(BaseModel):
+    record_uid: str
+    object_uid: str
+    current_step: int
+    name: str
+    description: Optional[str] = None
+    map_uid: str
+    map_name: str
+    map_version: int
     persona: List[str]  # List of PersonaMeta.object_uid
     created_at: datetime
     updated_at: datetime

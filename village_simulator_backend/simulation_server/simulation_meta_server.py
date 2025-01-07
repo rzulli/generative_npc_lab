@@ -2,7 +2,7 @@
 from .database.environment import SimulationService
 from .legacy.backend_server.newReverie import NewReverieServer
 
-class SimulationServer:
+class SimulationMetaServer:
     def __init__(self):
         self.simulation = SimulationService()
         

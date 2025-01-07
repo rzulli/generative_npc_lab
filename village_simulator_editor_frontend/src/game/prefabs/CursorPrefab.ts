@@ -28,10 +28,9 @@ export const CursorPrefab = (
     addComponent(world, StateMachineComponent, prefab);
     addComponent(world, CursorComponent, prefab);
 
-    let mach = new StateMachine(
+    const mach = new StateMachine(
         new InitialState({ eid: prefab, scene: scene, map_eid: map_eid })
     );
-    console.log(mach);
     StateMachineComponent.current[prefab] = mach;
 
     return prefab;

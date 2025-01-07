@@ -1,6 +1,6 @@
 import Tilemap from "../../../components/Tilemap";
 import { updatePointerPosition } from "../../../prefabs/CursorPrefab";
-import { CursorEvent, CursorMode } from "../Cursor";
+import { Cursor, CursorEvent, CursorMode } from "../Cursor";
 import { PlaceTileCursorState } from "./PlaceTileCursorState";
 import { SelectAreaCursorState } from "./SelectAreaCursorState";
 import { State } from "@/lib/stateMachine/StateMachine";
@@ -9,6 +9,7 @@ export interface IdleCursorContext {
     eid: number;
     scene: Phaser.Scene;
     map_eid: number;
+    cursor: Cursor;
 }
 
 export class IdleCursorState extends State<IdleCursorContext, CursorEvent> {
@@ -32,11 +33,5 @@ export class IdleCursorState extends State<IdleCursorContext, CursorEvent> {
             default:
                 return null;
         }
-        const map = Tilemap.map[this.context.map_eid];
-
-        const pointerTileX = this.context.pointer.x;
-        const pointerTileY = this.context.pointer.y;
-
-        return null;
     }
 }

@@ -1,5 +1,5 @@
 from flask import Flask,request,abort, url_for, jsonify
-from simulation_server.simulation_server import SimulationServer
+from simulation_server.simulation_meta_server import SimulationMetaServer
 from pymongo.collection import Collection, ReturnDocument
 from bson import json_util
 from flask_cors import CORS, cross_origin
@@ -14,7 +14,7 @@ from routes.v1.map.meta_routes import map_meta
 from routes.v1.map.instance_routes import map_instance
 from routes.v1.simulation.meta_routes import simulation_meta
 from routes.v1.simulation.instance_routes import simulation_instance
-
+from simulation_server.database.db import get_db, db
 
 def create_app():
     
@@ -32,7 +32,10 @@ def create_app():
     app.register_blueprint(map_instance, url_prefix="/api/v1")
     app.register_blueprint(simulation_meta, url_prefix="/api/v1")
     app.register_blueprint(simulation_instance, url_prefix="/api/v1")
-    
+    with app.app_context():
+        get_db()
+        a = db.simulation_instance
+        
     @app.errorhandler(400)
     def bad_request(error):
         response = jsonify({
@@ -44,7 +47,7 @@ def create_app():
 
     @app.route("/")
     def hello_world():
-        server = SimulationServer("base")
+        server = SimulationMetaServer("base")
         return server.hello_world()
     
 
@@ -52,5 +55,6 @@ def create_app():
 
     return app
 
-
-create_app().run()
+app = create_app()
+if __name__ == '__main__':
+    app.run()

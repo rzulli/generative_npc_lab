@@ -92,6 +92,18 @@ function useSimulation(initialSimulation: SimulationProperties | null) {
         },
         [simulationMeta.map_uid]
     );
+
+    const startSimulation = useCallback(
+        (uid: string, version: string | null) => {
+            return SimulationService().getSimulationInstance(
+                uid,
+                version,
+                (data: any) => EventBus.emit("ON_SIMULATION_EVENT", data)
+            );
+        },
+        []
+    );
+
     EventBus.removeListener("ON_MAPSTATE_UPDATE");
 
     EventBus.addListener("ON_MAPSTATE_UPDATE", () => {
@@ -109,6 +121,7 @@ function useSimulation(initialSimulation: SimulationProperties | null) {
         listMapMeta,
         listSimulationMeta,
         loadSimulationMeta,
+        startSimulation,
     };
 }
 

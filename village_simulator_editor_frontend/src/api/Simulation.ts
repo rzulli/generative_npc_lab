@@ -9,6 +9,31 @@ export default function SimulationService() {
             values
         );
     };
+
+    const getSimulationInstance = (uid, version, callback) => {
+        const eventSource = new EventSource(
+            `http://localhost:5000/api/v1/simulation/instance?uid=${uid}&version=${version}`
+        );
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            callback(data);
+        };
+
+        eventSource.onerror = (e) => {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Error receiving simulation events: " + e.message,
+            });
+            eventSource.close();
+        };
+
+        return () => {
+            eventSource.close();
+        };
+    };
+
     const getMap = async (map_uid, version) => {
         return await axios
             .get("http://localhost:5000/api/v1/map/meta", {
@@ -72,5 +97,6 @@ export default function SimulationService() {
         listMapMeta,
         listSimulationMeta,
         getSimulationMeta,
+        getSimulationInstance,
     };
 }

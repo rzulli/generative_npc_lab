@@ -2,6 +2,7 @@ from datetime import datetime
 from .db import db
 import nanoid
 from ..model.simulation import SimulationMeta
+from ..model.simulation import SimulationInstance
 from .map import MapService
 
 class SimulationService():
@@ -56,6 +57,7 @@ class SimulationService():
             "description": None,
             "map_uid": map_uid,
             "map_name": latest_map["name"],
+            "map_version": latest_map["version"],
             "persona": [],
             "created_at": datetime.now(),
             "updated_at": datetime.now(),
@@ -68,6 +70,31 @@ class SimulationService():
 
         # Insert the validated data into the database
         result = self.simulation_meta.insert_one(simulation.dict())
+        return result, uid
+    
+    def create_instance(self, simulation):
+        uid = nanoid.generate(size=5)
+        simulation_data = {
+            "record_uid": uid,
+            "object_uid": uid,
+            "current_step": 0,
+            "name": simulation["name"]+" ("+uid+")",
+            "description": None,
+            "map_uid": simulation["map_uid"],
+            "map_name": simulation["map_name"],
+            "map_version": simulation["map_version"],
+            "persona": [],
+            "created_at": datetime.now(),
+            "updated_at": datetime.now(),
+            "deleted": False,
+            "deleted_at": None
+        }
+
+        # Validate the data using Pydantic
+        simulation = SimulationInstance(**simulation_data)
+
+        # Insert the validated data into the database
+        result = self.simulation_instance.insert_one(simulation.dict())
         return result, uid
     
     # def get_or_start_simulation_timeline(self, sim_code, timeline_id):
