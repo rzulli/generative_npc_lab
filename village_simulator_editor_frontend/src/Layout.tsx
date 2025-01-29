@@ -3,7 +3,7 @@ import "./index.css";
 export default function RootLayout({ children }) {
     return (
         <>
-            <main>{children}</main>
+            <main className="min-h-[100vh]">{children}</main>
             <Toaster />
         </>
     );

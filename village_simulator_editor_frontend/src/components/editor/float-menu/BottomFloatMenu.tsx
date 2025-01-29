@@ -7,7 +7,7 @@ import { Box, Brain } from "lucide-react";
 export default function BottomFloatMenu() {
     return (
         <div
-            className="fixed bottom-0 right-[50%] translate-x-[50%] p-4
+            className="absolute bottom-0 right-[50%] translate-x-[50%] p-4
             "
         >
             <Menubar>

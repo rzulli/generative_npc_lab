@@ -30,7 +30,7 @@ export const initialState = {
 const config: Phaser.Types.Core.GameConfig = {
     type: AUTO,
     width: "100%",
-    height: "94%",
+    height: "100%",
     parent: "game-container",
     backgroundColor: "#028af8",
     scene: [

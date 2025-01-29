@@ -50,7 +50,7 @@ export class EditorScene extends Scene {
 
     create() {
         const { width, height } = this.scale;
-        this.logo = this.add.image(512, 300, "background2").setDepth(-100);
+        //this.logo = this.add.image(512, 300, "background2").setDepth(-100);
         this.world = createWorld();
         this.physics.world.setBounds(0, 0, 2000, 2000);
 
@@ -60,36 +60,35 @@ export class EditorScene extends Scene {
         camera.startFollow(Player.physics[player]);
 
         // const map = addEntity(this.world);
-        EventBus.addListener(
-            "ON_LOAD_MAP_DATA_SUCCESS",
-            (map, tries: number = 0) => {
-                console.log(map, this);
-                if (tries > 5) {
-                    console.error("Max tries reached. Aborting");
-                    toast({
-                        title: "Error",
-                        messsage: "Loading failed. Please try again later",
-                    });
-                    return;
-                }
-                if (this.sys.cache == null) {
-                    console.error("Cache is null. Rescheduling event");
-                    setTimeout(() => {
-                        EventBus.emit(
-                            "ON_LOAD_MAP_DATA_SUCCESS",
-                            map,
-                            tries + 1
-                        );
-                    }, 1000);
-                    return;
-                }
-                this.sys.cache.tilemap.add("map", {
-                    format: 1, //1 - TILEDJSON
-                    data: map,
+        const onLoadMapDataSuccess = (map, tries: number = 0) => {
+            console.log(map, this);
+            if (tries > 5) {
+                console.error("Max tries reached. Aborting");
+                toast({
+                    title: "Error",
+                    content: "Loading failed. Please try again later",
                 });
-                EventBus.emit("ON_ADD_TILEMAP");
+                EventBus.removeListener(
+                    "ON_LOAD_MAP_DATA_SUCCESS",
+                    onLoadMapDataSuccess
+                );
+                return;
             }
-        );
+            if (this.sys.cache == null) {
+                console.error("Cache is null. Rescheduling event");
+                setTimeout(() => {
+                    EventBus.emit("ON_LOAD_MAP_DATA_SUCCESS", map, tries + 1);
+                }, 1000);
+                return;
+            }
+            this.sys.cache.tilemap.add("map", {
+                format: 1, //1 - TILEDJSON
+                data: map,
+            });
+            EventBus.emit("ON_ADD_TILEMAP");
+        };
+
+        EventBus.addListener("ON_LOAD_MAP_DATA_SUCCESS", onLoadMapDataSuccess);
         EventBus.addListener("SELECT_LAYER", (layer_name) => {
             this.updateView(layer_name);
         });

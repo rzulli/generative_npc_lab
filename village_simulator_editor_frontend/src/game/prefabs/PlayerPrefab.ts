@@ -27,7 +27,8 @@ export const PlayerPrefab = (scene: Phaser.Scene) => {
     Player.physics[prefab] = scene.physics.add
         .sprite(800, 288, "atlas", "misa-front")
         .setSize(30, 40)
-        .setOffset(0, 0);
+        .setOffset(0, 0)
+        .setDepth(1);
     Position.x[prefab] = 100;
     Position.y[prefab] = 100;
     Sprite.texture[prefab] = Textures.TankBlue;

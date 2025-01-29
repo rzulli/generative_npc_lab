@@ -47,6 +47,7 @@ function useSimulation(initialSimulation: SimulationProperties | null) {
     const [simulationMeta, setSimulationMeta] = useState(initialSimulation);
     const [mapMeta, setMapMeta] = useState(emptyMap);
     const [changes, setChanges] = useState({});
+    const [simulationState, setSimulationState] = useState();
 
     // const newSimulation = useCallback(() => {
     //     setSimulationMeta(emptySimulation);
@@ -67,7 +68,6 @@ function useSimulation(initialSimulation: SimulationProperties | null) {
                 .getSimulationMeta(simulation_uid, version)
                 .then((response) => {
                     setSimulationMeta(response);
-
                     loadMap(response.map_uid);
                     setChanges({});
                     return response;
@@ -93,13 +93,64 @@ function useSimulation(initialSimulation: SimulationProperties | null) {
         [simulationMeta.map_uid]
     );
 
+    const stopSimulation = useCallback(() => {
+        if (simulationState?.socket && simulationState?.socket?.connected) {
+            simulationState.socket.disconnect();
+            toast({
+                title: "Simulation Stopped",
+                description: "The simulation has been successfully stopped.",
+            });
+            setSimulationState((prev) => ({
+                ...prev,
+                socket: null,
+            }));
+        }
+    }, [simulationState]);
+
     const startSimulation = useCallback(
         (uid: string, version: string | null) => {
-            return SimulationService().getSimulationInstance(
+            const socket = SimulationService().getSimulationInstanceSocketIO(
                 uid,
                 version,
                 (data: any) => EventBus.emit("ON_SIMULATION_EVENT", data)
             );
+
+            socket.on("connected", () => {
+                setSimulationState((prev) => ({
+                    ...prev,
+                    socket: socket,
+                    uid: uid,
+                    version: version,
+                }));
+                console.log("Socket connected:", socket);
+            });
+            socket.on("message", (data) => {
+                console.log("message", data);
+                //console.log(parsePythonJsonDict(data));
+                //const parsedData = parsePythonJsonDict(data);
+                //callback(parsedData);
+            });
+            socket.on("map_metadata", (data) => {
+                console.log("teste", data);
+                //console.log(parsePythonJsonDict(data));
+                //const parsedData = parsePythonJsonDict(data);
+                //callback(parsedData);
+            });
+            socket.on("simulation_start", (data) => {
+                console.log("simulation_start", data);
+                //console.log(parsePythonJsonDict(data));
+                //const parsedData = parsePythonJsonDict(data);
+                //callback(parsedData);
+            });
+            socket.on("connect_error", (error) => {
+                console.error("Socket connection error:", error);
+                setSimulationState((prev) => ({
+                    ...prev,
+                    socket: null,
+                }));
+            });
+
+            return;
         },
         []
     );
@@ -122,6 +173,8 @@ function useSimulation(initialSimulation: SimulationProperties | null) {
         listSimulationMeta,
         loadSimulationMeta,
         startSimulation,
+        simulationState,
+        stopSimulation,
     };
 }
 

@@ -91,8 +91,8 @@ interface MapTileset extends Phaser.Tilemaps.Tileset {
 export class Map {
     map: Phaser.Tilemaps.Tilemap;
     private scene: Phaser.Scene;
-    private tileset: Record<string, MapTileset>;
-    private layers: Record<string, Phaser.Tilemaps.TilemapLayer>;
+    private tileset: Record<string, MapTileset> = {};
+    private layers: Record<string, Phaser.Tilemaps.TilemapLayer> = {};
     private tileLayers: [string] | [] = [];
     private dataLayers: [string] | [] = [];
     private tools: [EditorTool] | [];
@@ -101,23 +101,44 @@ export class Map {
     private static instance: Map;
 
     constructor(scene: Phaser.Scene) {
+        if (Map.instance?.map) {
+            console.log("Destroying map", Map.instance.map);
+            Map.instance.currentGid = 0;
+            Object.entries(Map.instance.tileset).forEach(([key, value]) => {
+                console.log("Destroying tileset", key);
+                Map.instance.scene.textures.remove(key);
+            });
+
+            Map.instance.map.removeAllLayers();
+            Map.instance.map.destroy();
+            console.log("Destroyed map", Map.instance.map);
+            EventBus.emit("ON_MAPSTATE_UPDATE", this);
+        }
+
         if (Map.instance) {
+            Map.instance.scene = scene;
+            Map.instance.tileset = {};
+            Map.instance.layers = {};
+            Map.instance.tools = [];
+            Map.instance.currentGid = 0;
             return Map.instance; // Retorna a instância existente
         }
-        Map.instance = this;
         this.scene = scene;
         this.tileset = {};
         this.layers = {};
         this.tools = [];
+        this.currentGid = 0;
+        Map.instance = this;
     }
 
     buildMap(withData: string | null) {
-        console.log(withData, this.map);
+        console.log(withData, Map.instance.map);
+
         if (withData == null) {
             //empty map
-            this.map = this.scene.make.tilemap();
+            Map.instance.map = this.scene.make.tilemap();
         } else {
-            this.map = this.scene.make.tilemap({ key: withData });
+            Map.instance.map = this.scene.make.tilemap({ key: withData });
         }
         return this;
     }
@@ -133,13 +154,14 @@ export class Map {
     async withTileset(tilesetName: string, url: string): Promise<this> {
         return new Promise((resolve, reject) => {
             let loader = this.scene.load.image(tilesetName, url);
-            console.log(tilesetName, url);
-            this.tileset[tilesetName] = {};
+
             loader.once("complete", () => {
                 const tilesetResult = this.map.addTilesetImage(
                     tilesetName,
                     tilesetName
                 );
+
+                console.log(tilesetName, url, Map.instance.tileset);
                 if (tilesetResult == null) {
                     console.error("Tileset not found in cache: ", tilesetName);
                     reject(
@@ -147,12 +169,23 @@ export class Map {
                     );
                     return;
                 }
-                tilesetResult.firstgid = this.currentGid;
-                this.currentGid += tilesetResult.total;
-                this.tileset[tilesetName] = { ...tilesetResult, url: url };
+                const tileset = Map.instance.map.tilesets.filter(
+                    (obj) => obj.name == tilesetName
+                );
+                if (tileset.length > 0) {
+                    console.log(tileset);
+                    tilesetResult.firstgid = tileset[0].firstgid;
+                } else {
+                    tilesetResult.firstgid = this.currentGid;
+                    Map.instance.currentGid += tilesetResult.total;
+                }
+                Map.instance.tileset[tilesetName] = {
+                    ...tilesetResult,
+                    url: url,
+                };
                 console.log(tilesetResult.firstgid, this.tileset[tilesetName]);
                 // this.map.layers.map((obj, i) =>
-                //     this.map.layers[i].tilemapLayer.tileset.push(tilesetResult)
+                //     obj.tilemapLayer.tileset.push(tilesetResult)
                 // );
                 EventBus.emit("ON_MAPSTATE_UPDATE", this);
                 resolve(this);
@@ -162,17 +195,22 @@ export class Map {
     }
 
     withDataLayer(layerName: string, offset: { x: number; y: number }) {
-        if (layerName in this.layers) {
+        if (layerName in Map.instance.layers) {
             console.error("Duplicate layer name: ", layerName);
             return this;
         }
-        const layer = this.map.createLayer(layerName, null, offset.x, offset.y);
+        const layer = Map.instance.map.createLayer(
+            layerName,
+            null,
+            offset.x,
+            offset.y
+        );
         if (layer == null) {
             console.error("Layer not created: ", layerName);
             return this;
         }
-        this.layers[layerName] = layer;
-        this.dataLayers.push(layerName);
+        Map.instance.layers[layerName] = layer;
+        Map.instance.dataLayers.push(layerName);
         return this;
     }
     withTileLayer(
@@ -181,8 +219,12 @@ export class Map {
         offset: { x: number; y: number } | null = null,
         depth: number | null = null
     ) {
-        if (layerName in this.layers) {
-            console.error("Duplicate layer name: ", layerName);
+        if (layerName in Map.instance.layers) {
+            console.error(
+                "Duplicate layer name: ",
+                layerName,
+                Map.instance.layers
+            );
             return this;
         }
         let layerOffset = offset;
@@ -192,36 +234,39 @@ export class Map {
         let layer;
         console.log(
             "ajsdiajaisdjasidjiasida aquiui",
-            Object.keys(this.tileset)
+            Object.keys(this.tileset),
+            tiledImportLayer
         );
         if (tiledImportLayer != null) {
             // Create Phaser.Tilemaps.TileLayer
-            layer = this.map.createLayer(
+            layer = Map.instance.map.createLayer(
                 tiledImportLayer,
                 Object.keys(this.tileset),
                 layerOffset.x,
                 layerOffset.y
             );
         } else {
-            layer = this.map.createBlankLayer(
+            layer = Map.instance.map.createBlankLayer(
                 layerName,
                 Object.keys(this.tileset),
                 layerOffset.x,
                 layerOffset.y
             );
         }
-        this.tileLayers.push(layerName);
+
         console.log(layer);
         if (layer == null) {
             console.error("Layer not created: ", layerName);
             return this;
         }
 
+        Map.instance.tileLayers.push(layerName);
+
         if (depth != null && depth != 0) {
             layer.setDepth(depth);
         }
 
-        this.layers[layerName] = layer;
+        Map.instance.layers[layerName] = layer;
         console.log(this.map);
         return this;
     }
@@ -282,9 +327,9 @@ export class Map {
 class EditableMap {
     constructor() {}
 }
-function createMap(scene: Phaser.Scene, key) {
+function createMap(scene: Phaser.Scene, key: string | null, addLayer = true) {
     const newMap = new Map(scene).buildMap(key);
-    newMap
+    return newMap
         .withTilesets([
             {
                 name: "blocks_1",
@@ -306,28 +351,92 @@ function createMap(scene: Phaser.Scene, key) {
                 name: "interiors_pt3",
                 url: "assets/simulation/the_ville/visuals/map_assets/v1/interiors_pt3.png",
             },
+            {
+                name: "interiors_pt4",
+                url: "assets/simulation/the_ville/visuals/map_assets/v1/interiors_pt4.png",
+            },
+            {
+                name: "interiors_pt5",
+                url: "assets/simulation/the_ville/visuals/map_assets/v1/interiors_pt5.png",
+            },
+            {
+                name: "CuteRPG_Field_B",
+                url: "assets/simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Field_B.png",
+            },
+            {
+                name: "CuteRPG_Field_C",
+                url: "assets/simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Field_C.png",
+            },
+            {
+                name: "CuteRPG_Harbor_C",
+                url: "assets/simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Harbor_C.png",
+            },
+            {
+                name: "CuteRPG_Village_B",
+                url: "assets/simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Village_B.png",
+            },
+            {
+                name: "CuteRPG_Forest_B",
+                url: "assets/simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Forest_B.png",
+            },
+            {
+                name: "CuteRPG_Desert_C",
+                url: "assets/simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Desert_C.png",
+            },
+            {
+                name: "CuteRPG_Mountains_B",
+                url: "assets/simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Mountains_B.png",
+            },
+            {
+                name: "CuteRPG_Desert_B",
+                url: "assets/simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Desert_B.png",
+            },
+            {
+                name: "CuteRPG_Forest_C",
+                url: "assets/simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Forest_C.png",
+            },
         ])
         .then(() => {
-            newMap.withTileLayer("First Layer");
-        });
+            if (addLayer) newMap.withTileLayer("First Layer");
 
-    return newMap;
+            return newMap;
+        });
 }
 
 function loadMapData(map: Map) {
-    map.withTileLayer("Bottom Ground", { x: 0, y: 0 }, 0)
-        .withDataLayer("Sector Blocks", { x: 0, y: 0 }, 0)
-        .withDataLayer("Arena Blocks", { x: 0, y: 0 }, 0)
-        .withDataLayer("World Blocks", { x: 0, y: 0 }, 0)
-        .withTileLayer("Exterior Ground", { x: 0, y: 0 }, 0)
-        .withTileLayer("Exterior Decoration L1", { x: 0, y: 0 }, 0)
-        .withTileLayer("Exterior Decoration L2", { x: 0, y: 0 }, 0)
-        .withTileLayer("Interior Ground", { x: 0, y: 0 }, 0)
-        .withTileLayer("Wall", { x: 0, y: 0 }, 0)
-        .withTileLayer("Interior Furniture L1", { x: 0, y: 0 }, 0)
-        .withTileLayer("Interior Furniture L2 ", { x: 0, y: 0 }, 0)
-        .withTileLayer("Foreground L1", { x: 0, y: 0 }, 2)
-        .withTileLayer("Foreground L2", { x: 0, y: 0 }, 2)
+    map.withTileLayer("Bottom Ground", "Bottom Ground", { x: 0, y: 0 }, 0)
+        .withDataLayer("Sector Blocks", { x: 0, y: 0 })
+        .withDataLayer("Arena Blocks", { x: 0, y: 0 })
+        .withDataLayer("World Blocks", { x: 0, y: 0 })
+        .withTileLayer("Exterior Ground", "Exterior Ground", { x: 0, y: 0 }, 0)
+        .withTileLayer(
+            "Exterior Decoration L1",
+            "Exterior Decoration L1",
+            { x: 0, y: 0 },
+            0
+        )
+        .withTileLayer(
+            "Exterior Decoration L2",
+            "Exterior Decoration L2",
+            { x: 0, y: 0 },
+            0
+        )
+        .withTileLayer("Interior Ground", "Interior Ground", { x: 0, y: 0 }, 0)
+        .withTileLayer("Wall", "Wall", { x: 0, y: 0 }, 0)
+        .withTileLayer(
+            "Interior Furniture L1",
+            "Interior Furniture L1",
+            { x: 0, y: 0 },
+            0
+        )
+        .withTileLayer(
+            "Interior Furniture L2",
+            "Interior Furniture L2",
+            { x: 0, y: 0 },
+            0
+        )
+        .withTileLayer("Foreground L1", "Foreground L1", { x: 0, y: 0 }, 2)
+        .withTileLayer("Foreground L2", "Foreground L2", { x: 0, y: 0 }, 2)
         .withDataLayer("Collisions", { x: 0, y: 0 })
         .withCollisionLayer("Collisions", { collide: true })
         .withTool(IsolateLayerTool);
@@ -335,18 +444,21 @@ function loadMapData(map: Map) {
     return map;
 }
 
-function loadMapDataSuccess(context: InitialStateContext) {
-    let map_instance = createMap(context.scene, "map");
+async function loadMapDataSuccess(context: InitialStateContext) {
+    let map_instance = await createMap(context.scene, "map", false);
     map_instance = loadMapData(map_instance);
     Tilemap.map[context.eid] = map_instance;
-
+    console.log("ashjidauishdjias");
     EventBus.emit("ON_MAPSTATE_UPDATE", map_instance);
+    context.map = map_instance;
 }
 
-function newMap(context: InitialStateContext) {
-    let map_instance = createMap(context.scene);
+async function newMap(context: InitialStateContext) {
+    console.log("uhasduhausdh");
+    const map_instance = await createMap(context.scene, null);
     Tilemap.map[context.eid] = map_instance;
     EventBus.emit("ON_MAPSTATE_UPDATE", map_instance);
+    context.map = map_instance;
 }
 
 function resetView() {
@@ -365,12 +477,13 @@ interface IdleMapContext {
 }
 
 class IdleMapState extends State<IdleMapContext, TilemapEvent> {
-    onEvent(event: TilemapEvent): State<IdleMapContext, TilemapEvent> | null {
+    onEvent({ event, data }): State<IdleMapContext, TilemapEvent> | null {
         switch (event) {
             case TilemapEvent.NEW_MAP:
-                newMap(this.context);
+                //newMap(this.context);
                 return null;
             case TilemapEvent.LOAD_MAP_DATA_SUCCESS:
+                console.log("ajisdiajsdia");
                 loadMapDataSuccess(this.context);
                 return null;
             default:
@@ -384,17 +497,17 @@ interface InitialStateContext {
     scene: Phaser.Scene;
 }
 class InitialState extends State<InitialStateContext, TilemapEvent> {
-    onEvent(
-        event: TilemapEvent
-    ): State<InitialStateContext, TilemapEvent> | null {
+    onEvent({ event, data }): State<InitialStateContext, TilemapEvent> | null {
+        console.log("aaaaaaaaaa", event);
         switch (event) {
             case TilemapEvent.NEW_MAP:
-                newMap(this.context);
+                //newMap(this.context);
                 return new IdleMapState({
                     ...this.context,
                     map: Tilemap.map[this.context.eid],
                 });
             case TilemapEvent.LOAD_MAP_DATA_SUCCESS:
+                console.log("ajisdiajsdia");
                 loadMapDataSuccess(this.context);
                 return new IdleMapState({
                     ...this.context,

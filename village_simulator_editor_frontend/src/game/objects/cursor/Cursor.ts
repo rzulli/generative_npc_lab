@@ -71,13 +71,15 @@ export class Cursor {
         this.updateCursorPosition();
     };
     updateCursorPosition() {
+        const tilemapComponent = Tilemap.map[this.context.map_eid];
         if (
-            Tilemap.map[this.context.map_eid].map == null ||
-            Tilemap.map[this.context.map_eid].map.layers.length == 0
+            !tilemapComponent ||
+            !tilemapComponent.map ||
+            tilemapComponent.map.layers.length == 0
         )
             return;
 
-        const map = Tilemap.map[this.context.map_eid].map;
+        const map = tilemapComponent.map;
         // Rounds down to nearest tile
         this.pointerCoord.x = map.worldToTileX(this.worldPoint.x);
         this.pointerCoord.y = map.worldToTileY(this.worldPoint.y);

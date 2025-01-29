@@ -17,6 +17,16 @@ export interface IRefPhaserGame {
 
 interface IProps {}
 
+export const PhaserSimulationCanvas = function ({ width, height }) {
+    const phaserRef = useRef<IRefPhaserGame | null>(null);
+
+    useEffect(() => {
+        if (phaserRef.current?.game) {
+            phaserRef.current.game.scale.resize(width, height);
+        }
+    }, [width, height]);
+    return <PhaserGame ref={phaserRef} />;
+};
 export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
     function PhaserGame({}, ref) {
         const { mapMeta } = useContext(SimulationContext);

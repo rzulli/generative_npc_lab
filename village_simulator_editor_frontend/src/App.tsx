@@ -6,15 +6,19 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import Home from "./Home";
 import About from "./About";
 import SimulationPlayer from "./SimulationPlayer";
+import { store } from "@/store";
+import { Provider } from "react-redux";
 
 export default function App() {
     return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<SimulationEditor />} />
-                <Route path="/run" element={<SimulationPlayer />} />
-            </Routes>
-        </BrowserRouter>
+        <Provider store={store}>
+            <BrowserRouter>
+                <Routes>
+                    <Route path="/" element={<SimulationEditor />} />
+                    <Route path="/run" element={<SimulationPlayer />} />
+                </Routes>
+            </BrowserRouter>
+        </Provider>
     );
 }
 

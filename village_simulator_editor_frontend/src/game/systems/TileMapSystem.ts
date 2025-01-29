@@ -18,11 +18,23 @@ export enum TilemapEvent {
     IDLE,
 }
 export class TilemapEventHandler extends AbstractEventHandler<TilemapEvent> {
-    constructor() {
+    private static instance: TilemapEventHandler;
+
+    private constructor() {
         super();
-        EventBus.addListener("ON_ADD_TILEMAP", () => {
-            this.emit(TilemapEvent.LOAD_MAP_DATA_SUCCESS);
-        });
+        EventBus.addListener("ON_ADD_TILEMAP", this.onAddTilemap.bind(this));
+    }
+
+    static getInstance(): TilemapEventHandler {
+        if (!TilemapEventHandler.instance) {
+            TilemapEventHandler.instance = new TilemapEventHandler();
+        }
+        return TilemapEventHandler.instance;
+    }
+
+    private onAddTilemap() {
+        console.log("ON_ADD_TILEMAP");
+        this.emit(TilemapEvent.LOAD_MAP_DATA_SUCCESS);
     }
 
     handle(): { event: TEventType; data: any } {
@@ -34,7 +46,7 @@ export class TilemapEventHandler extends AbstractEventHandler<TilemapEvent> {
 
 export default function createTilemapSystem() {
     const mapQuery = defineQuery([Tilemap, StateMachineComponent]);
-    const eventHandler = new TilemapEventHandler();
+    const eventHandler = TilemapEventHandler.getInstance();
     eventHandler.emit(TilemapEvent.NEW_MAP);
     const stateMachineSystem = createStateMachineSystem<TilemapEvent>();
 
