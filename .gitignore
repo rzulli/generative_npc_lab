@@ -200,3 +200,5 @@ __pycache__
 *.sw?
 
 village_simulator_backend/simulation_server/legacy/backend_server/utils.py
+vscode-*
+infinite-canvas/*
