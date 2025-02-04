@@ -132,7 +132,7 @@ export class Map {
     }
 
     buildMap(withData: string | null) {
-        console.log(withData, Map.instance.map);
+        // console.log(withData, Map.instance.map);
 
         if (withData == null) {
             //empty map
@@ -161,7 +161,7 @@ export class Map {
                     tilesetName
                 );
 
-                console.log(tilesetName, url, Map.instance.tileset);
+                // console.log(tilesetName, url, Map.instance.tileset);
                 if (tilesetResult == null) {
                     console.error("Tileset not found in cache: ", tilesetName);
                     reject(
@@ -173,7 +173,7 @@ export class Map {
                     (obj) => obj.name == tilesetName
                 );
                 if (tileset.length > 0) {
-                    console.log(tileset);
+                    // console.log(tileset);
                     tilesetResult.firstgid = tileset[0].firstgid;
                 } else {
                     tilesetResult.firstgid = this.currentGid;
@@ -183,7 +183,7 @@ export class Map {
                     ...tilesetResult,
                     url: url,
                 };
-                console.log(tilesetResult.firstgid, this.tileset[tilesetName]);
+                // console.log(tilesetResult.firstgid, this.tileset[tilesetName]);
                 // this.map.layers.map((obj, i) =>
                 //     obj.tilemapLayer.tileset.push(tilesetResult)
                 // );
@@ -232,11 +232,11 @@ export class Map {
             layerOffset = { x: 0, y: 0 };
         }
         let layer;
-        console.log(
-            "ajsdiajaisdjasidjiasida aquiui",
-            Object.keys(this.tileset),
-            tiledImportLayer
-        );
+        // console.log(
+        //     "ajsdiajaisdjasidjiasida aquiui",
+        //     Object.keys(this.tileset),
+        //     tiledImportLayer
+        // );
         if (tiledImportLayer != null) {
             // Create Phaser.Tilemaps.TileLayer
             layer = Map.instance.map.createLayer(
@@ -254,7 +254,7 @@ export class Map {
             );
         }
 
-        console.log(layer);
+        // console.log(layer);
         if (layer == null) {
             console.error("Layer not created: ", layerName);
             return this;
@@ -267,7 +267,7 @@ export class Map {
         }
 
         Map.instance.layers[layerName] = layer;
-        console.log(this.map);
+        // console.log(this.map);
         return this;
     }
 
@@ -290,7 +290,7 @@ export class Map {
     }
 
     setLayerAlpha(layer: number | string, alpha: number) {
-        console.log("ASDASDIOAOSDIOA", layer, alpha);
+        // console.log("ASDASDIOAOSDIOA", layer, alpha);
         if (typeof layer == "string") {
             this.layers[layer].alpha = alpha;
         } else if (
@@ -448,13 +448,13 @@ async function loadMapDataSuccess(context: InitialStateContext) {
     let map_instance = await createMap(context.scene, "map", false);
     map_instance = loadMapData(map_instance);
     Tilemap.map[context.eid] = map_instance;
-    console.log("ashjidauishdjias");
+    // console.log("ashjidauishdjias");
     EventBus.emit("ON_MAPSTATE_UPDATE", map_instance);
     context.map = map_instance;
 }
 
 async function newMap(context: InitialStateContext) {
-    console.log("uhasduhausdh");
+    // console.log("uhasduhausdh");
     const map_instance = await createMap(context.scene, null);
     Tilemap.map[context.eid] = map_instance;
     EventBus.emit("ON_MAPSTATE_UPDATE", map_instance);
@@ -483,7 +483,7 @@ class IdleMapState extends State<IdleMapContext, TilemapEvent> {
                 //newMap(this.context);
                 return null;
             case TilemapEvent.LOAD_MAP_DATA_SUCCESS:
-                console.log("ajisdiajsdia");
+                // console.log("ajisdiajsdia");
                 loadMapDataSuccess(this.context);
                 return null;
             default:
@@ -498,7 +498,7 @@ interface InitialStateContext {
 }
 class InitialState extends State<InitialStateContext, TilemapEvent> {
     onEvent({ event, data }): State<InitialStateContext, TilemapEvent> | null {
-        console.log("aaaaaaaaaa", event);
+        // console.log("aaaaaaaaaa", event);
         switch (event) {
             case TilemapEvent.NEW_MAP:
                 //newMap(this.context);
@@ -507,7 +507,7 @@ class InitialState extends State<InitialStateContext, TilemapEvent> {
                     map: Tilemap.map[this.context.eid],
                 });
             case TilemapEvent.LOAD_MAP_DATA_SUCCESS:
-                console.log("ajisdiajsdia");
+                // console.log("ajisdiajsdia");
                 loadMapDataSuccess(this.context);
                 return new IdleMapState({
                     ...this.context,

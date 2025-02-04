@@ -10,7 +10,7 @@ import BottomFloatMenu from "./components/editor/float-menu/BottomFloatMenu";
 import { IRefPhaserGame, PhaserGame } from "./game/PhaserGame";
 import { SimulationContext } from "./hooks/useSimulationContext";
 import { useAppSelector } from "./hooks/hooks";
-import { selectMapMeta } from "./slices/mapMetaSlice";
+import { selectMapMeta } from "./store/slices/mapMetaSlice";
 interface SimulationEditorProps {}
 
 export default function SimulationEditor() {

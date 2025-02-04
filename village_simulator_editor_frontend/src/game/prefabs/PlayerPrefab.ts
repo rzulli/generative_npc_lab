@@ -25,8 +25,9 @@ export const PlayerPrefab = (scene: Phaser.Scene) => {
     addComponent(scene.world, Input, prefab);
 
     Player.physics[prefab] = scene.physics.add
-        .sprite(800, 288, "atlas", "misa-front")
-        .setSize(30, 40)
+        .sprite(100, 100, "character", "down")
+        .setSize(30, 60)
+
         .setOffset(0, 0)
         .setDepth(1);
     Position.x[prefab] = 100;

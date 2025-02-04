@@ -26,6 +26,9 @@ import createInputSystem from "../../systems/InputSystem";
 import { EventBus } from "../../EventBus";
 import { title } from "process";
 import { toast } from "@/hooks/use-toast";
+import createAgentSystem from "@/game/systems/AgentSystem";
+import { AgentPrefab } from "@/game/prefabs/AgentPrefab";
+import Agent from "@/game/components/Agent";
 export class EditorScene extends Scene {
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
 
@@ -35,7 +38,9 @@ export class EditorScene extends Scene {
     private tilemapSystem!: System;
     private cursorSystem!: System;
     private inputSystem!: System;
+    private agentSystem!: System;
     private map;
+    private agents: { [key: string]: number };
     constructor() {
         super("EditorScene");
     }
@@ -52,16 +57,16 @@ export class EditorScene extends Scene {
         const { width, height } = this.scale;
         //this.logo = this.add.image(512, 300, "background2").setDepth(-100);
         this.world = createWorld();
-        this.physics.world.setBounds(0, 0, 2000, 2000);
+        this.physics.world.setBounds(0, 0, 300, 300);
 
         let player = PlayerPrefab(this);
         const camera = this.cameras.main;
-        this.cameras.main.setBounds(0, 0, 2000, 2000);
+        this.cameras.main.setBounds(0, 0, 300, 300);
         camera.startFollow(Player.physics[player]);
 
         // const map = addEntity(this.world);
         const onLoadMapDataSuccess = (map, tries: number = 0) => {
-            console.log(map, this);
+            // console.log(map.data, this);
             if (tries > 5) {
                 console.error("Max tries reached. Aborting");
                 toast({
@@ -77,18 +82,46 @@ export class EditorScene extends Scene {
             if (this.sys.cache == null) {
                 console.error("Cache is null. Rescheduling event");
                 setTimeout(() => {
-                    EventBus.emit("ON_LOAD_MAP_DATA_SUCCESS", map, tries + 1);
+                    EventBus.emit("map_state", map, tries + 1);
                 }, 1000);
                 return;
             }
             this.sys.cache.tilemap.add("map", {
                 format: 1, //1 - TILEDJSON
-                data: map,
+                data: map.data,
             });
+            const w = map.data.width * map.data.tilewidth;
+            const h = map.data.height * map.data.tileheight;
+            this.physics.world.setBounds(0, 0, w, h);
+            this.cameras.main.setBounds(0, 0, w, h);
             EventBus.emit("ON_ADD_TILEMAP");
         };
+        this.agents = [];
+        EventBus.addListener("spawn_agent", (eventData) => {
+            try {
+                // let parsedAgent = JSON.parse(data);
+                console.log("spawn agent", eventData);
+                Object.entries(eventData.data.state).map(([k, v]) => {
+                    eventData.data.state[k] = JSON.parse(v);
+                });
+                this.agents[eventData.scope] = AgentPrefab(
+                    this,
+                    eventData.data.state
+                );
+                camera.startFollow(Agent.physics[this.agents[eventData.scope]]);
+                console.log("parsed agent data", eventData, this.agents);
+                console.log("ao");
+            } catch (error) {
+                console.error(
+                    "Failed to parse agent data",
+                    eventData,
+                    typeof eventData,
+                    error
+                );
+            }
+        });
 
-        EventBus.addListener("ON_LOAD_MAP_DATA_SUCCESS", onLoadMapDataSuccess);
+        EventBus.addListener("map_state", onLoadMapDataSuccess);
         EventBus.addListener("SELECT_LAYER", (layer_name) => {
             this.updateView(layer_name);
         });
@@ -99,6 +132,7 @@ export class EditorScene extends Scene {
         this.tilemapSystem = createTilemapSystem();
 
         this.playerSystem = createPlayerSystem(this.cursors);
+        this.agentSystem = createAgentSystem(this);
 
         this.spriteSystem = createSpriteSystem(this, [
             "tank-blue",
@@ -162,5 +196,6 @@ export class EditorScene extends Scene {
         this.spriteSystem(this.world);
         this.cursorSystem(this.world, this);
         this.inputSystem(this.world);
+        this.agentSystem(this.world);
     }
 }

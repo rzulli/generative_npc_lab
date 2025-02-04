@@ -20,6 +20,7 @@ export class IdleCursorState extends State<IdleCursorContext, CursorEvent> {
         event: CursorEvent;
         data: any;
     }): State<IdleCursorContext, CursorEvent> | null {
+        this.context.cursor.isVisible = true;
         this.context.cursor.updateState(this.context.scene);
         switch (event.event) {
             case CursorEvent.PLACE_TILE:
@@ -30,6 +31,10 @@ export class IdleCursorState extends State<IdleCursorContext, CursorEvent> {
                 return null;
             case CursorEvent.SELECT_AREA:
                 return new SelectAreaCursorState(this.context);
+            case CursorEvent.ON_MOUSE_DOWN:
+                this.context.cursor.isVisible;
+                console.log("ajisdiasd", this.context.cursor);
+                return null;
             default:
                 return null;
         }

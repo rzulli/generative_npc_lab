@@ -8,6 +8,9 @@ import About from "./About";
 import SimulationPlayer from "./SimulationPlayer";
 import { store } from "@/store";
 import { Provider } from "react-redux";
+import SocketClient from "@/store/socket-client/index";
+
+export const socketClient = new SocketClient();
 
 export default function App() {
     return (

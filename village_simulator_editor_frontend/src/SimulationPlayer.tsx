@@ -1,7 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
-import { SimulationContext } from "./hooks/useSimulationContext";
-interface SimulationEditorProps {}
-
+import { useEffect, useState } from "react";
 import "tldraw/tldraw.css";
 /* eslint-disable react-hooks/rules-of-hooks */
 import {
@@ -13,321 +10,346 @@ import {
     Tldraw,
 } from "tldraw";
 
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
-import "tldraw/tldraw.css";
-import { AgGridReact } from "ag-grid-react"; // React Data Grid Component
-import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
-ModuleRegistry.registerModules([AllCommunityModule]);
+import { SquareArrowDownLeft, SquareArrowOutUpRight } from "lucide-react";
+import { useSelector } from "react-redux";
+import { Circle2d, Geometry2d, ShapeUtil } from "tldraw";
 
-import {
-    Circle2d,
-    Geometry2d,
-    HTMLContainer,
-    Rectangle2d,
-    ShapeUtil,
-    TLShape,
-} from "tldraw";
-import "tldraw/tldraw.css";
-import SimulationLog from "./SimulationLog";
-import {
-    BluetoothConnected,
-    FolderOpen,
-    Loader,
-    PlayCircle,
-    PowerCircle,
-    Wifi,
-} from "lucide-react";
-import CollapsibleLog from "./components/infinite-canvas/CollapsibleLog";
-import { object } from "zod";
-import SimulationEditor from "./SimulationEditor";
-import { useAppDispatch } from "./hooks/hooks";
-import { loadMap } from "./slices/mapMetaSlice";
 import { EventBus } from "./game/EventBus";
-import {
-    IRefPhaserGame,
-    PhaserGame,
-    PhaserSimulationCanvas,
-} from "./game/PhaserGame";
+import { PhaserSimulationCanvas } from "./game/PhaserGame";
+import { useAppDispatch, useAppSelector } from "./hooks/hooks";
+import { selectSimulationInstance } from "./store/slices/simulationInstanceSlice";
+import { selectSimulationMeta } from "./store/slices/simulationMetaSlice";
+import { EditorTools } from "./components/infinite-canvas/EditorTools";
+import { SimulationLogShapeUtil } from "./SimulationLogShapeUtil";
 
-// There's a guide at the bottom of this file!
-
-// [1]
-type MyGridShape = TLBaseShape<"my-grid-shape", Record<string, never>>;
-type MyCounterShape = TLBaseShape<"my-counter-shape", Record<string, never>>;
-
-// [2]
-const SLOT_SIZE = 100;
-class MyCounterShapeUtil extends ShapeUtil<MyCounterShape> {
-    static override type = "my-counter-shape" as const;
-
-    override canResize() {
-        return false;
-    }
-    override hideResizeHandles() {
-        return true;
-    }
-
-    getDefaultProps(): MyCounterShape["props"] {
-        return {};
-    }
-
-    getGeometry(): Geometry2d {
-        return new Circle2d({ radius: SLOT_SIZE / 2 - 10, isFilled: true });
-    }
-
-    component() {
-        return (
-            <HTMLContainer
-                style={{
-                    backgroundColor: "#e03131",
-                    border: "1px solid #ff8787",
-                    borderRadius: "50%",
-                }}
-            />
-        );
-    }
-
-    indicator() {
-        return (
-            <circle
-                r={SLOT_SIZE / 2 - 10}
-                cx={SLOT_SIZE / 2 - 10}
-                cy={SLOT_SIZE / 2 - 10}
-            />
-        );
-    }
-}
-type IMyInteractiveShape = TLBaseShape<
+type ISimulationCanvasShape = TLBaseShape<
     "my-interactive-shape",
     {
         w: number;
         h: number;
-        scope: string;
-        logInstances: () => object;
+        container_w: string;
+        container_h: string;
     }
 >;
-// [3]
-class SimulationLogShapeUtil extends BaseBoxShapeUtil<IMyInteractiveShape> {
-    static override type = "simulation-log" as const;
-
-    static override props: RecordProps<IMyInteractiveShape> = {
-        w: T.number,
-        h: T.number,
-        scope: T.string,
-        logInstances: T.any,
-    };
-
-    getDefaultProps(): IMyInteractiveShape["props"] {
-        return {
-            w: 230,
-            h: 230,
-            scope: "global",
-            logInstances: () => object,
-        };
-    }
-
-    override canResize() {
-        return true;
-    }
-
-    component(shape: IMyInteractiveShape) {
-        return (
-            <HTMLContainer
-                style={{
-                    padding: 16,
-                    height: shape.props.h,
-                    width: shape.props.w,
-                    // [a] This is where we allow pointer events on our shape
-                    pointerEvents: "all",
-                    backgroundColor: "#efefef",
-                    overflow: "hidden",
-                }}
-            >
-                <CollapsibleLog
-                    key={shape.props.scope}
-                    scope={shape.props.scope}
-                    instancesFunction={shape.props.logInstances}
-                />
-            </HTMLContainer>
-        );
-    }
-
-    // [5]
-    indicator(shape: IMyInteractiveShape) {
-        return <rect width={shape.props.w} height={shape.props.h} />;
-    }
-}
-class SimulationCanvasShapeUtil extends BaseBoxShapeUtil<IMyInteractiveShape> {
+class SimulationCanvasShapeUtil extends BaseBoxShapeUtil<ISimulationCanvasShape> {
     static override type = "simulation-canvas" as const;
 
-    static override props: RecordProps<IMyInteractiveShape> = {
+    static override props: RecordProps<ISimulationCanvasShape> = {
         w: T.number,
         h: T.number,
-        scope: T.string,
-        logInstances: T.any,
+        container_h: T.string,
+        container_w: T.string,
     };
 
-    getDefaultProps(): IMyInteractiveShape["props"] {
+    getDefaultProps(): ISimulationCanvasShape["props"] {
         return {
-            w: 230,
-            h: 230,
-            scope: "global",
-            logInstances: () => object,
+            w: 800,
+            h: 600,
+            container_w: "30vw",
+            container_h: "30vh",
         };
     }
 
     override canResize() {
-        return true;
+        return false;
     }
 
-    component(shape: IMyInteractiveShape) {
+    component(shape: ISimulationCanvasShape) {
         return (
-            <HTMLContainer
-                style={{
-                    padding: 0,
-                    height: shape.props.h,
-                    width: shape.props.w,
-                    pointerEvents: "all",
-                    backgroundColor: "#efefef",
-                    overflow: "hidden",
-                }}
-            >
+            <div className="flex flex-col" style={{ pointerEvents: "all" }}>
+                <div className="flex z-10 p-1 gap-3 bg-slate-950 text-white">
+                    {shape.props.w > 400 && (
+                        <div
+                            className=" flex"
+                            onMouseDown={(e) => {
+                                e.stopPropagation();
+
+                                if (shape.props.w == 1920) {
+                                    this.editor.updateShape({
+                                        id: shape.id,
+                                        type: shape.type,
+                                        props: {
+                                            ...shape.props,
+                                            w: 800,
+                                            h: 600,
+                                        },
+                                    });
+                                } else if (shape.props.w == 800) {
+                                    this.editor.updateShape({
+                                        id: shape.id,
+                                        type: shape.type,
+                                        props: {
+                                            ...shape.props,
+                                            w: 400,
+                                            h: 320,
+                                        },
+                                    });
+                                } else if (shape.props.w == 400) {
+                                    this.editor.updateShape({
+                                        id: shape.id,
+                                        type: shape.type,
+                                        props: {
+                                            ...shape.props,
+                                            w: 1920,
+                                            h: 1080,
+                                        },
+                                    });
+                                }
+                            }}
+                        >
+                            {shape.props.w == 1920 && (
+                                <SquareArrowDownLeft className="w-4 h-4 " />
+                            )}
+
+                            {shape.props.w == 800 && (
+                                <SquareArrowDownLeft className="w-4 h-4 " />
+                            )}
+                        </div>
+                    )}
+                    {shape.props.w < 1900 && (
+                        <div
+                            className=" flex"
+                            onMouseDown={(e) => {
+                                e.stopPropagation();
+
+                                if (shape.props.w == 400) {
+                                    this.editor.updateShape({
+                                        id: shape.id,
+                                        type: shape.type,
+                                        props: {
+                                            ...shape.props,
+                                            w: 800,
+                                            h: 600,
+                                        },
+                                    });
+                                } else if (shape.props.w == 800) {
+                                    this.editor.updateShape({
+                                        id: shape.id,
+                                        type: shape.type,
+                                        props: {
+                                            ...shape.props,
+                                            w: 1920,
+                                            h: 1080,
+                                        },
+                                    });
+                                } else if (shape.props.w == 1920) {
+                                    this.editor.updateShape({
+                                        id: shape.id,
+                                        type: shape.type,
+                                        props: {
+                                            ...shape.props,
+                                            w: 400,
+                                            h: 320,
+                                        },
+                                    });
+                                }
+                            }}
+                        >
+                            {shape.props.w == 400 && (
+                                <SquareArrowOutUpRight className="w-4 h-4 " />
+                            )}
+
+                            {shape.props.w == 800 && (
+                                <SquareArrowOutUpRight className="w-4 h-4 " />
+                            )}
+                        </div>
+                    )}
+
+                    <div>
+                        {shape.props.w} x {shape.props.h}
+                    </div>
+                    <div>Simulation Panel</div>
+                </div>
                 <PhaserSimulationCanvas
                     width={shape.props.w}
-                    height={shape.props.h}
+                    height={shape.props.h - 26}
                 />
-            </HTMLContainer>
+            </div>
         );
     }
 
-    override canScroll(shape: IMyInteractiveShape) {
+    override canScroll(shape: ISimulationCanvasShape) {
         return false;
     }
-    override canEdit(_shape: IMyInteractiveShape): boolean {
+    override canEdit(_shape: ISimulationCanvasShape): boolean {
         return false;
     }
-    override canBeLaidOut(_shape: IMyInteractiveShape): boolean {
+    override canBeLaidOut(_shape: ISimulationCanvasShape): boolean {
         return false;
     }
 
-    indicator(shape: IMyInteractiveShape) {
+    indicator(shape: ISimulationCanvasShape) {
         return <rect width={shape.props.w} height={shape.props.h} />;
     }
 }
-const GridExample = () => {
-    // Row Data: The data to be displayed.
-    const [rowData, setRowData] = useState([
-        { make: "Tesla", model: "Model Y", price: 64950, electric: true },
-        { make: "Ford", model: "F-Series", price: 33850, electric: false },
-        { make: "Toyota", model: "Corolla", price: 29600, electric: false },
-    ]);
+// const GridExample = () => {
+//     // Row Data: The data to be displayed.
+//     const [rowData, setRowData] = useState([
+//         { make: "Tesla", model: "Model Y", price: 64950, electric: true },
+//         { make: "Ford", model: "F-Series", price: 33850, electric: false },
+//         { make: "Toyota", model: "Corolla", price: 29600, electric: false },
+//     ]);
 
-    // Column Definitions: Defines the columns to be displayed.
-    const [colDefs, setColDefs] = useState([
-        { field: "make" },
-        { field: "model" },
-        { field: "price" },
-        { field: "electric" },
-    ]);
+//     // Column Definitions: Defines the columns to be displayed.
+//     const [colDefs, setColDefs] = useState([
+//         { field: "make" },
+//         { field: "model" },
+//         { field: "price" },
+//         { field: "electric" },
+//     ]);
 
-    return (
-        <>
-            <AgGridReact rowData={rowData} columnDefs={colDefs} />
-        </>
-    );
-};
+//     return (
+//         <>
+//             <AgGridReact rowData={rowData} columnDefs={colDefs} />
+//         </>
+//     );
+// };
 export default function SimulationPlayer() {
-    const { mapMeta, startSimulation, simulationState, stopSimulation } =
-        useContext(SimulationContext);
     const [editor, setEditor] = useState<Editor | null>(null);
+    const [shapesSet, setShapesSet] = useState<Set<string>>(new Set());
+    const [updateShapesToggle, setUpdateShapesToggle] = useState(false);
+    const simulationMeta = useAppSelector(selectSimulationMeta);
+    const simulationInstance = useAppSelector(selectSimulationInstance);
+    const state = useSelector((state) => state.socket);
+
     const dispatch = useAppDispatch();
-    const connectSimulation = () => {
-        if (simulationState?.socket && simulationState?.socket?.connected) {
-            simulationState.socket.emit("run_simulation");
+    const updateShapes = () => {
+        // console.log("updateShapes", simulationInstance.events);
+
+        const newShapes: any[] = [];
+        const existingShapeIds = new Set<string>();
+
+        Object.entries(simulationInstance.events).forEach(([scope, log]) => {
+            // console.log(scope, log);
+            const calculatedWidth = Math.floor(window.innerWidth * 0.5);
+            const calculatedHeight = Math.floor(window.innerHeight * 0.5);
+
+            const shapeId = `shape:events-${scope}`;
+            existingShapeIds.add(shapeId);
+            if (!shapesSet.has(shapeId)) {
+                const currentX =
+                    newShapes.length > 0
+                        ? newShapes[newShapes.length - 1].x +
+                          calculatedWidth +
+                          10
+                        : 0;
+                newShapes.push({
+                    id: shapeId,
+                    type: "simulation-log",
+                    x: currentX,
+                    y: 0,
+                    props: {
+                        h: calculatedHeight,
+                        w: calculatedWidth,
+                        scope: scope,
+                    },
+                });
+                shapesSet.add(shapeId);
+            }
+        });
+        if (editor) {
+            editor.createShapes(newShapes);
+            setShapesSet(new Set(shapesSet));
         }
     };
+    useEffect(() => {
+        if (!editor) return;
+
+        EventBus.on("socketEvent", () =>
+            setUpdateShapesToggle((prev) => !prev)
+        );
+        return () => {
+            EventBus.off("socketEvent", () =>
+                setUpdateShapesToggle((prev) => !prev)
+            );
+        };
+    }, [editor]);
 
     useEffect(() => {
-        const handleSpawnAgent = (event: any) => {
-            if (editor) {
-                const { id, x, y, w, h, scope, logInstances } = event.detail;
-                editor.createShapes([
-                    {
-                        id,
-                        type: "simulation-log",
-                        x,
-                        y,
-                        props: { w, h, scope, logInstances },
-                    },
-                ]);
-            }
-        };
+        if (!editor) return;
+        // console.log(updateShapesToggle);
+        updateShapes();
+    }, [updateShapesToggle]);
 
-        EventBus.on("spawn_agent", handleSpawnAgent);
+    // useEffect(() => {
+    //     const handleUpdate = (event: any) => {
+    //         if (editor) {
+    //             console.log(event.data.state);
+    //             console.log(
+    //                 "agent_update",
+    //                 JSON.parse(event.data.state.atavistic)
+    //             );
+    //             // const { id, x, y, w, h, scope, logInstances } = event.detail;
+    //             // editor.createShapes([
+    //             //     {
+    //             //         id,
+    //             //         type: "simulation-log",
+    //             //         x,
+    //             //         y,
+    //             //         props: { w, h, scope, logInstances },
+    //             //     },
+    //             // ]);
+    //         }
+    //     };
 
-        return () => {
-            EventBus.off("spawn_agent", handleSpawnAgent);
-        };
+    //     EventBus.on("agent_update", handleUpdate);
+
+    //     return () => {
+    //         EventBus.off("agent_update", handleUpdate);
+    //     };
+    // }, [editor]);
+    // useEffect(() => {
+    //     const handleSpawnAgent = (event: any) => {
+    //         if (editor) {
+    //             console.log("spawn_agent", event);
+    //             // const { id, x, y, w, h, scope, logInstances } = event.detail;
+    //             // editor.createShapes([
+    //             //     {
+    //             //         id,
+    //             //         type: "simulation-log",
+    //             //         x,
+    //             //         y,
+    //             //         props: { w, h, scope, logInstances },
+    //             //     },
+    //             // ]);
+    //         }
+    //     };
+
+    //     EventBus.on("spawn_agent", handleSpawnAgent);
+
+    //     return () => {
+    //         EventBus.off("spawn_agent", handleSpawnAgent);
+    //     };
+    // }, [editor]);
+
+    useEffect(() => {
+        // EventBus.on("simulation_start", handleStart);
+        // return () => {
+        //     EventBus.off("simulation_start", handleStart);
+        // };
     }, [editor]);
 
     return (
         <div className="relative h-[100vh]">
             <Tldraw
                 tools={[]}
-                shapeUtils={[
-                    SimulationLogShapeUtil,
-                    MyCounterShapeUtil,
-                    SimulationCanvasShapeUtil,
-                ]}
+                shapeUtils={[SimulationLogShapeUtil, SimulationCanvasShapeUtil]}
                 onMount={(editor) => {
                     setEditor(editor);
-                    editor.createShape({
-                        type: "simulation-canvas",
-                        x: 100,
-                        y: 100,
-                        props: {
-                            w: 200,
-                            h: 200,
-                            scope: "global",
-                            logInstances: () => object,
-                        },
-                    });
+                    // editor.createShape({
+                    //     type: "simulation-canvas",
+                    //     x: 100,
+                    //     y: 100,
+                    //     props: {
+                    //         w: 200,
+                    //         h: 200,
+                    //         scope: "global",
+                    //         logInstances: () => object,
+                    //     },
+                    // });
                 }}
             >
-                <div className="absolute inset-x-0 items-center flex flex-1 justify-center z-[300] p-2 pointer-events-none ">
-                    {simulationState?.socket?.connected ? (
-                        <>
-                            <div
-                                className="text-green-500 text-lg pointer-events-auto"
-                                onClick={() => stopSimulation()}
-                            >
-                                <Wifi />
-                            </div>
-                            <div
-                                className="text-green-500 text-lg pointer-events-auto"
-                                onClick={() => connectSimulation()}
-                            >
-                                <PlayCircle />
-                            </div>{" "}
-                        </>
-                    ) : (
-                        <div
-                            className="text-slate-800 text-lg pointer-events-auto"
-                            onClick={() => startSimulation()}
-                        >
-                            <PowerCircle />
-                        </div>
-                    )}
-                    <div
-                        className="text-slate-800 text-lg pointer-events-auto"
-                        onClick={() =>
-                            dispatch(loadMap({ map_uid: "Rr7paNh" }))
-                        }
-                    >
-                        <FolderOpen />
-                    </div>
-                </div>
+                <EditorTools editor={editor} />
             </Tldraw>
         </div>
     );

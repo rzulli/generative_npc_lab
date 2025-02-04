@@ -15,7 +15,7 @@ export function createStateMachineSystem<TEvent>() {
                 if (StateMachineComponent.current[id]) {
                     const event = eventHandler.handle();
                     if (event.event != idleEvent) {
-                        console.log("Handling ", event);
+                        // console.log("Handling ", event);
                     }
                     StateMachineComponent.current[id].send(event);
                 }

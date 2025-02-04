@@ -24,76 +24,6 @@ export class Preloader extends Scene {
     }
 
     preload() {
-        //  Load the assets for the game - Replace with your own assets
-        // this.load.setPath("assets");
-
-        // this.load.image(
-        //     "blocks_1",
-        //     "simulation/the_ville/visuals/map_assets/blocks/blocks_1.png"
-        // );
-        // this.load.image(
-        //     "walls",
-        //     "simulation/the_ville/visuals/map_assets/v1/Room_Builder_32x32.png"
-        // );
-        // this.load.image(
-        //     "interiors_pt1",
-        //     "simulation/the_ville/visuals/map_assets/v1/interiors_pt1.png"
-        // );
-        // this.load.image(
-        //     "interiors_pt2",
-        //     "simulation/the_ville/visuals/map_assets/v1/interiors_pt2.png"
-        // );
-        // this.load.image(
-        //     "interiors_pt3",
-        //     "simulation/the_ville/visuals/map_assets/v1/interiors_pt3.png"
-        // );
-        // this.load.image(
-        //     "interiors_pt4",
-        //     "simulation/the_ville/visuals/map_assets/v1/interiors_pt4.png"
-        // );
-        // this.load.image(
-        //     "interiors_pt5",
-        //     "simulation/the_ville/visuals/map_assets/v1/interiors_pt5.png"
-        // );
-        // this.load.image(
-        //     "CuteRPG_Field_B",
-        //     "simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Field_B.png"
-        // );
-        // this.load.image(
-        //     "CuteRPG_Field_C",
-        //     "simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Field_C.png"
-        // );
-        // this.load.image(
-        //     "CuteRPG_Harbor_C",
-        //     "simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Harbor_C.png"
-        // );
-        // this.load.image(
-        //     "CuteRPG_Village_B",
-        //     "simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Village_B.png"
-        // );
-        // this.load.image(
-        //     "CuteRPG_Forest_B",
-        //     "simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Forest_B.png"
-        // );
-        // this.load.image(
-        //     "CuteRPG_Desert_C",
-        //     "simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Desert_C.png"
-        // );
-        // this.load.image(
-        //     "CuteRPG_Mountains_B",
-        //     "simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Mountains_B.png"
-        // );
-        // this.load.image(
-        //     "CuteRPG_Desert_B",
-        //     "simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Desert_B.png"
-        // );
-        // this.load.image(
-        //     "CuteRPG_Forest_C",
-        //     "simulation/the_ville/visuals/map_assets/cute_rpg_word_VXAce/tilesets/CuteRPG_Forest_C.png"
-        // );
-
-        // Joon: This is the export json file you get from Tiled.
-
         // An atlas is a way to pack multiple images together into one texture. I'm
         // using it to load all the player animations (walking left, walking right,
         // etc.) in one image. For more info see:
@@ -103,7 +33,7 @@ export class Preloader extends Scene {
         // Joon: Technically, I think this guy had the best tutorial for atlas:
         //       https://www.youtube.com/watch?v=fdXcD9X4NrQ&ab_channel=MorganPage
         this.load.atlas(
-            "atlas",
+            "character",
             "assets/simulation/characters/atlas.png",
             "assets/simulation/characters/atlas.json"
         );

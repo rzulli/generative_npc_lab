@@ -1,4 +1,4 @@
- {
+{
     "frames": [
         {
             "filename": "down-walk.000",
@@ -56,7 +56,7 @@
             "filename": "down",
             "frame": {
                 "w": 32,
-                "h": 32,
+                "h": 46,
                 "x": 32,
                 "y": 0
             },
@@ -65,7 +65,6 @@
                 "y": 0.5
             }
         },
-
 
         {
             "filename": "left-walk.000",
@@ -133,9 +132,6 @@
             }
         },
 
-
-
-
         {
             "filename": "right-walk.000",
             "frame": {
@@ -201,9 +197,6 @@
                 "y": 0.5
             }
         },
-
-
-
 
         {
             "filename": "up-walk.000",
@@ -276,3 +269,4 @@
         "web": "https://gammafp.github.io/atlas-packer-phaser/"
     }
 }
+
