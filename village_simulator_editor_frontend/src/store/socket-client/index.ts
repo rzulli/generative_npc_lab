@@ -12,12 +12,12 @@ class SocketClient {
         });
         return new Promise<void>((resolve, reject) => {
             this.socket?.on("connected", (data) => {
-                console.log(data);
+                console.debug(data);
                 toast({ title: "Connected to backend" });
             });
 
             this.socket?.on("connect_error", (e) => {
-                console.log(JSON.stringify(e));
+                console.debug(JSON.stringify(e));
                 toast({
                     variant: "destructive",
                     title: "Error",
@@ -59,7 +59,7 @@ class SocketClient {
         // No promise is needed here, but we're expecting one in the middleware.
         return new Promise<void>((resolve, reject) => {
             if (!this.socket) return reject("No socket connection.");
-            console.log("on", event, fun);
+            console.debug("on", event, fun);
             this.socket.on(event, fun);
             resolve();
         });

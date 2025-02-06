@@ -9,6 +9,7 @@ from .simulation.orchestrator import *
 from .agent import *
 import json
 from datetime import datetime
+import gzip
 
 MAX_TIMEOUT = 60  # Set your desired timeout in seconds
 
@@ -119,6 +120,7 @@ class EventManager:
         
         safe_data = json.dumps(data, ensure_ascii=False, skipkeys=True, default=str)
         self.logger.debug(f"{event_name} emitted with {safe_data}", propagate=False)
+        safe_data = gzip.compress(bytes(safe_data, 'utf-8'))
         self.socketio.emit(event_name, safe_data, namespace="/simulation/instance/")
 
     def emit_message(self, data, scope="global"):
@@ -217,10 +219,9 @@ class Lucida:
         self.logger.log("Simulation started")
         world_state = WorldEnvironment(Lucida.logger, self.map)
 
-        # for agent in agent_list:
-        #     self.agents.append(Agent(Lucida.logger, agent, world_state.get_random_player_spawn(), self.stop_event))
+        for agent in agent_list:
+                    self.agents.append(Agent(world_state, Lucida.logger, agent,world_state.get_random_player_spawn(), self.stop_event))
 
-        self.agents.append(Agent(world_state, Lucida.logger, agent_list[0],world_state.get_random_player_spawn(), self.stop_event))
         for agent in self.agents:
             agent.start_agent()
                 

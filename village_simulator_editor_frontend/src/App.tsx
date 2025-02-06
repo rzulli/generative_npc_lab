@@ -9,6 +9,7 @@ import SimulationPlayer from "./SimulationPlayer";
 import { store } from "@/store";
 import { Provider } from "react-redux";
 import SocketClient from "@/store/socket-client/index";
+import { JsonEditor } from "json-edit-react";
 
 export const socketClient = new SocketClient();
 

@@ -2,6 +2,8 @@ import { Scene } from "phaser";
 import { Command } from "../../command/Command";
 import Tilemap from "../../components/Tilemap";
 import { tile_width } from "../../consts";
+import { store } from "@/store";
+import { IdleCursorContext, IdleCursorState } from "./state/IdleCursorState";
 
 export enum CursorEvent {
     NONE,
@@ -25,15 +27,15 @@ interface CursorStyle {
     alpha: number;
 }
 const styleMode: Record<CursorMode, CursorStyle> = {
-    [CursorMode.single]: { lineWidth: 1, color: 0x00ff00, alpha: 1 },
+    [CursorMode.single]: { lineWidth: 1, color: 0xff0000, alpha: 1 },
 
     [CursorMode.area]: { lineWidth: 1, color: 0xff00ff, alpha: 1 },
     [CursorMode.place]: { lineWidth: 1, color: 0x0000ff, alpha: 1 },
     [CursorMode.place_no_tile]: { lineWidth: 1, color: 0x333333, alpha: 0.5 },
 };
-
 export class Cursor {
-    context: InitialStateContext;
+    private static instance: Cursor;
+    context: IdleCursorContext;
     marker: Phaser.GameObjects.Graphics;
     pointerCoord: { x: number; y: number } = { x: 0, y: 0 };
     pointerTile: { x: number; y: number } = { x: 0, y: 0 };
@@ -46,11 +48,42 @@ export class Cursor {
     currentTileSelected: number | null = null;
     private isVisible: boolean = false;
     worldPoint = { x: 0, y: 0 };
-    constructor(context: InitialStateContext) {
+    static map_metadata: any = {};
+    static reverse_lookup: any = {};
+    private unsubscribe;
+    private label: Phaser.GameObjects.Text;
+    private constructor(context: IdleCursorContext) {
+        this.unsubscribe = store.subscribe(() => {
+            const state = store.getState();
+            Cursor.map_metadata = { ...state.simulationInstance.map_metadata };
+            Cursor.reverse_lookup = {
+                ...state.simulationInstance.reverse_lookup,
+            };
+            console.debug(
+                "STORE UPDATE",
+                Cursor.map_metadata,
+                Cursor.reverse_lookup
+            );
+        });
         this.context = context;
+
         this.marker = context.scene.add.graphics();
+        this.label = context.scene.add.text(100, 100, "debug text", {
+            fontFamily: 'Georgia, "Goudy Bookletter 1911", Times, serif',
+            fontSize: 20,
+            color: "#fff",
+        });
+        this.label.setDepth(99);
+
         this.marker.lineStyle(2, 0x000000, 1);
         this.marker.strokeRect(0, 0, 1 * tile_width, 1 * tile_width);
+    }
+
+    public static getInstance(context: InitialStateContext): Cursor {
+        if (!Cursor.instance) {
+            Cursor.instance = new Cursor(context);
+        }
+        return Cursor.instance;
     }
 
     setMode(mode: CursorMode) {
@@ -87,7 +120,8 @@ export class Cursor {
         // Snap to tile coordinates, but in world space
         this.pointerTile.x = map.tileToWorldX(this.pointerCoord.x);
         this.pointerTile.y = map.tileToWorldY(this.pointerCoord.y);
-
+        this.label.x = this.pointerTile.x;
+        this.label.y = this.pointerTile.y;
         if (
             this.pointerCoord.x > map.width ||
             this.pointerCoord.y > map.height ||
@@ -122,9 +156,25 @@ export class Cursor {
 
     updateState(scene: Scene) {
         this.marker.clear();
+        this.marker.setDepth(2);
+
         this.updatePointerPosition(scene);
         if (!this.isVisible) {
             return;
+        }
+        if (
+            Cursor.map_metadata &&
+            Cursor.map_metadata[`${this.pointerCoord.x}:${this.pointerCoord.y}`]
+        ) {
+            this.label.text =
+                `${this.pointerCoord.x}:${this.pointerCoord.y}\n` +
+                Object.entries(
+                    Cursor.map_metadata[
+                        `${this.pointerCoord.x}:${this.pointerCoord.y}`
+                    ]
+                )
+                    .map(([key, value]) => `${key}: ${String(value)}`)
+                    .join("\n");
         }
 
         this.area = { x: 1, y: 1 };
@@ -176,5 +226,9 @@ export class Cursor {
                     );
                 }
         }
+    }
+    destroy() {
+        this.marker.destroy();
+        this.unsubscribe();
     }
 }

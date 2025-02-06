@@ -41,6 +41,8 @@ export class EditorScene extends Scene {
     private agentSystem!: System;
     private map;
     private agents: { [key: string]: number };
+    private current_camera_follow = 0;
+    private player: number;
     constructor() {
         super("EditorScene");
     }
@@ -59,10 +61,11 @@ export class EditorScene extends Scene {
         this.world = createWorld();
         this.physics.world.setBounds(0, 0, 300, 300);
 
-        let player = PlayerPrefab(this);
+        this.player = PlayerPrefab(this);
         const camera = this.cameras.main;
         this.cameras.main.setBounds(0, 0, 300, 300);
-        camera.startFollow(Player.physics[player]);
+
+        camera.startFollow(Player.physics[this.player]);
 
         // const map = addEntity(this.world);
         const onLoadMapDataSuccess = (map, tries: number = 0) => {
@@ -73,10 +76,8 @@ export class EditorScene extends Scene {
                     title: "Error",
                     content: "Loading failed. Please try again later",
                 });
-                EventBus.removeListener(
-                    "ON_LOAD_MAP_DATA_SUCCESS",
-                    onLoadMapDataSuccess
-                );
+                EventBus.removeAllListeners("ON_LOAD_MAP_DATA_SUCCESS");
+                EventBus.removeAllListeners("map_state");
                 return;
             }
             if (this.sys.cache == null) {
@@ -108,7 +109,7 @@ export class EditorScene extends Scene {
                     this,
                     eventData.data.state
                 );
-                camera.startFollow(Agent.physics[this.agents[eventData.scope]]);
+                //camera.startFollow(Agent.physics[this.agents[eventData.scope]]);
                 console.log("parsed agent data", eventData, this.agents);
                 console.log("ao");
             } catch (error) {
@@ -141,32 +142,67 @@ export class EditorScene extends Scene {
         ]);
 
         this.cursorSystem = createCursorSystem();
-        this.inputSystem = createInputSystem([
-            {
-                keys: [
-                    this.input.keyboard.addKey(
-                        Phaser.Input.Keyboard.KeyCodes.Q
-                    ),
-                ],
-                action: (event) => EventBus.emit("ON_TOGGLE_PLACE_CURSOR"),
-            },
-            {
-                keys: [
-                    this.input.keyboard.addKey(
-                        Phaser.Input.Keyboard.KeyCodes.W
-                    ),
-                ],
-                action: (event) => EventBus.emit("ON_TOGGLE_SELECT_AREA"),
-            },
-            {
-                keys: [
-                    this.input.keyboard.addKey(
-                        Phaser.Input.Keyboard.KeyCodes.ESC
-                    ),
-                ],
-                action: (event) => EventBus.emit("ON_CANCEL_TOOL"),
-            },
-        ]);
+        this.inputSystem = createInputSystem({
+            data: [
+                {
+                    keys: [
+                        this.input.keyboard?.addKey(
+                            Phaser.Input.Keyboard.KeyCodes.Q
+                        ),
+                    ],
+                    action: (event) => EventBus.emit("ON_TOGGLE_PLACE_CURSOR"),
+                },
+                {
+                    keys: [
+                        this.input.keyboard?.addKey(
+                            Phaser.Input.Keyboard.KeyCodes.W
+                        ),
+                    ],
+                    action: (event) => EventBus.emit("ON_TOGGLE_SELECT_AREA"),
+                },
+                {
+                    keys: [
+                        this.input.keyboard?.addKey(
+                            Phaser.Input.Keyboard.KeyCodes.ESC
+                        ),
+                    ],
+                    action: (event) => EventBus.emit("ON_CANCEL_TOOL"),
+                },
+                {
+                    keys: [
+                        this.input.keyboard?.addKey(
+                            Phaser.Input.Keyboard.KeyCodes.A
+                        ),
+                    ],
+                    action: (event) => {
+                        camera.stopFollow();
+
+                        const agentKeys = Object.keys(this.agents);
+                        console.debug(
+                            agentKeys,
+                            agentKeys[this.current_camera_follow],
+                            this.current_camera_follow,
+                            this.current_camera_follow === agentKeys.length
+                        );
+
+                        if (this.current_camera_follow === agentKeys.length) {
+                            this.current_camera_follow = 0;
+                            camera.startFollow(Player.physics[this.player]);
+                        } else {
+                            camera.startFollow(
+                                Agent.physics[
+                                    this.agents[
+                                        agentKeys[this.current_camera_follow]
+                                    ]
+                                ]
+                            );
+                            this.current_camera_follow += 1;
+                        }
+                    },
+                    debounceTime: 300,
+                },
+            ],
+        });
     }
     updateView(layer_name) {
         console.log(this.map, Tilemap.map[this.map]);
@@ -197,5 +233,13 @@ export class EditorScene extends Scene {
         this.cursorSystem(this.world, this);
         this.inputSystem(this.world);
         this.agentSystem(this.world);
+    }
+    destroy() {
+        EventBus.removeAllListeners();
+        this.input.keyboard.shutdown();
+        this.cameras.main.stopFollow();
+        this.physics.world.shutdown();
+        this.sys.cache.tilemap.remove("map");
+        this.scene.stop();
     }
 }

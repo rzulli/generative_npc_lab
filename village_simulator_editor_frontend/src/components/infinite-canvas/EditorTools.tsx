@@ -18,112 +18,148 @@ import {
     PauseCircle,
     PlayCircle,
     Plug,
+    ReceiptText,
     RedoDot,
     Unplug,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import "tldraw/tldraw.css";
+import { useEditor } from "tldraw";
+import { Menubar } from "../ui/menubar";
+import { useEffect } from "react";
 
-export function EditorTools(editor) {
+export function EditorTools() {
+    const editor = useEditor();
     const simulationInstance = useAppSelector(selectSimulationInstance);
     const state = useSelector((state) => state.socket);
+
     const dispatch = useAppDispatch();
 
     const handleStart = (event: any) => {
-        if (editor.editor) {
+        if (editor) {
             console.log("simulation_start", editor, event);
             // const { id, x, y, w, h, scope, logInstances } = event.detail;
-            editor.editor.createShapes([
+            editor.createShapes([
                 {
                     id: "shape:canvas",
                     type: "simulation-canvas",
-                    x: 400,
-                    y: 300,
+                    x: 0,
+                    y: 0,
                 },
             ]);
         }
     };
+    const handleAddPrompt = (event: any) => {
+        if (editor) {
+            console.log("handleAddPrompt", editor, event);
+            // const { id, x, y, w, h, scope, logInstances } = event.detail;
+            editor.createShapes([
+                {
+                    id: "shape:prompt",
+                    type: "prompt-editor",
+                    x: 0,
+                    y: 0,
+                },
+            ]);
+            editor.zoomToFit();
+        }
+    };
+
     return (
-        <div className="absolute inset-x-0 items-center flex flex-1 justify-center z-[300] p-2 pointer-events-none ">
-            {state.connectionStatus == "connected" ? (
-                <>
-                    <div
-                        className="text-green-500 text-lg pointer-events-auto"
-                        onClick={() => dispatch(disconnectFromSocket())}
-                    >
-                        <Unplug />
-                    </div>{" "}
-                    {simulationInstance.status == "failed" && (
-                        <div className="text-red-500 text-lg pointer-events-auto">
-                            <CircleOff />
-                        </div>
-                    )}
-                    {simulationInstance.status == "loading" && (
-                        <div className="text-green-500 text-lg pointer-events-auto">
-                            <LoaderCircle />
-                        </div>
-                    )}
-                    {!simulationInstance.status && (
+        <div className="absolute inset-x-0 items-center flex flex-1 justify-around z-[300] p-2 pointer-events-none ">
+            <Menubar className="text-lg pointer-events-auto cursor-pointer">
+                <div
+                    onClick={() => {
+                        handleAddPrompt();
+                    }}
+                >
+                    <ReceiptText />
+                </div>
+            </Menubar>
+            <Menubar className="cursor-pointer">
+                {state.connectionStatus == "connected" ? (
+                    <>
                         <div
                             className="text-green-500 text-lg pointer-events-auto"
-                            onClick={() =>
-                                dispatch(
-                                    spawnSimulation({
-                                        record_uid: "uFVuQ",
-                                        version: null,
-                                    })
-                                )
-                            }
+                            onClick={() => dispatch(disconnectFromSocket())}
                         >
-                            <HardDriveDownload />
-                        </div>
-                    )}
-                    {simulationInstance.status == "idle" && (
-                        <>
+                            <Unplug />
+                        </div>{" "}
+                        {simulationInstance.status == "failed" && (
+                            <div className="text-red-500 text-lg pointer-events-auto">
+                                <CircleOff />
+                            </div>
+                        )}
+                        {simulationInstance.status == "loading" && (
+                            <div className="text-green-500 text-lg pointer-events-auto">
+                                <LoaderCircle />
+                            </div>
+                        )}
+                        {!simulationInstance.status && (
                             <div
                                 className="text-green-500 text-lg pointer-events-auto"
                                 onClick={() =>
                                     dispatch(
-                                        stepSimulation({
+                                        spawnSimulation({
                                             record_uid: "uFVuQ",
                                             version: null,
                                         })
                                     )
                                 }
                             >
-                                <RedoDot />
+                                <HardDriveDownload />
                             </div>
-                            {simulationInstance.continous && (
+                        )}
+                        {simulationInstance.status == "idle" && (
+                            <>
                                 <div
                                     className="text-green-500 text-lg pointer-events-auto"
-                                    onClick={() => dispatch(pauseSimulation())}
+                                    onClick={() =>
+                                        dispatch(
+                                            stepSimulation({
+                                                record_uid: "uFVuQ",
+                                                version: null,
+                                            })
+                                        )
+                                    }
                                 >
-                                    <PauseCircle />
+                                    <RedoDot />
                                 </div>
-                            )}
-                            {!simulationInstance.continous && (
-                                <div
-                                    className="text-green-500 text-lg pointer-events-auto"
-                                    onClick={() => dispatch(playSimulation())}
-                                >
-                                    <PlayCircle />
-                                </div>
-                            )}
-                        </>
-                    )}
-                </>
-            ) : (
-                <div
-                    className="text-slate-800 text-lg pointer-events-auto"
-                    onClick={() => {
-                        dispatch(connectToSocket());
-                        handleStart();
-                    }}
-                >
-                    <Plug />
-                </div>
-            )}
-            {/* <div
+                                {simulationInstance.continous && (
+                                    <div
+                                        className="text-green-500 text-lg pointer-events-auto"
+                                        onClick={() =>
+                                            dispatch(pauseSimulation())
+                                        }
+                                    >
+                                        <PauseCircle />
+                                    </div>
+                                )}
+                                {!simulationInstance.continous && (
+                                    <div
+                                        className="text-green-500 text-lg pointer-events-auto"
+                                        onClick={() =>
+                                            dispatch(playSimulation())
+                                        }
+                                    >
+                                        <PlayCircle />
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </>
+                ) : (
+                    <div
+                        className="text-slate-800 text-lg pointer-events-auto"
+                        onClick={() => {
+                            dispatch(connectToSocket());
+                            handleStart();
+                        }}
+                    >
+                        <Plug />
+                    </div>
+                )}
+                {/* <div
             className="text-slate-800 text-lg pointer-events-auto"
             onClick={() =>
                 dispatch(loadMap({ map_uid: "Rr7paNh" }))
@@ -131,6 +167,7 @@ export function EditorTools(editor) {
         >
             <FolderOpen />
         </div> */}
+            </Menubar>
         </div>
     );
 }

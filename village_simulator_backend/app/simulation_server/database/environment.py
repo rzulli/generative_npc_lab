@@ -4,7 +4,7 @@ import nanoid
 from ..model.simulation import SimulationMeta
 from ..model.simulation import SimulationInstance
 from .map import MapService
-
+from ..utils import global_id
 class SimulationService():
 
     def __init__(self):
@@ -54,7 +54,7 @@ class SimulationService():
         if latest_map is None:
             return None, None
         
-        uid = nanoid.generate(size=5)
+        uid = global_id(size=5)
         simulation_data = {
             "record_uid": uid,
             "object_uid": uid,

@@ -9,6 +9,7 @@ from flask import stream_with_context, request, copy_current_request_context
 from .simulation.lib.logger import Logger
 from nanoid import generate
 from .simulation.module import MovementModule, PlanModule
+from ..utils import global_id
 class ComposedState:
         def __init__(self, **kwargs):
             self._states = kwargs
@@ -33,7 +34,7 @@ class Agent:
     def __init__(self, world_state :WorldEnvironment, logger : Logger, data, spawn_position, stop_event):
         self.data = data
         self.spawn_position = spawn_position
-        self.id = generate(size=4)
+        self.id = global_id()
         self.stop_event = stop_event
         self.scope = f"agent-{self.id}"
         

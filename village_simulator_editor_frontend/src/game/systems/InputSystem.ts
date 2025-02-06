@@ -9,24 +9,37 @@ import Rotation from "../components/Rotation";
 interface InputAction {
     keys: [Phaser.Input.Keyboard.Key];
     action: (event) => void;
+    debounceTime: number;
+    lastExecuted: number;
 }
-export default function createInputSystem(InputActionList: [InputAction]) {
+interface InputActionList {
+    data: [InputAction];
+}
+export default function createInputSystem(InputActionList: InputActionList) {
     const inputQuery = defineQuery([Input]);
-
+    console.log(InputActionList);
     return defineSystem((world) => {
-        for (let j = 0; j < InputActionList.length; ++j) {
+        for (let j = 0; j < InputActionList.data.length; ++j) {
             if (
-                InputActionList[j] == null ||
-                InputActionList[j].keys.length == 0
+                InputActionList.data[j] == null ||
+                InputActionList.data[j].keys.length == 0
             ) {
                 continue;
             }
 
-            for (let i = 0; i < InputActionList[j].keys.length; i++) {
-                if (InputActionList[j].keys[i].isDown) {
-                    InputActionList[j].action(
-                        InputActionList[j].keys[i].keyCode
-                    );
+            for (let i = 0; i < InputActionList.data[j].keys.length; i++) {
+                const inputAction = InputActionList.data[j];
+                const currentTime = Date.now();
+
+                if (inputAction.keys[i].isDown) {
+                    if (
+                        inputAction.lastExecuted == null ||
+                        currentTime - inputAction.lastExecuted >=
+                            inputAction.debounceTime
+                    ) {
+                        inputAction.action(inputAction.keys[i].keyCode);
+                        inputAction.lastExecuted = currentTime;
+                    }
                 }
             }
         }

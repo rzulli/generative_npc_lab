@@ -21,6 +21,7 @@ import {
     InitialStateContext,
 } from "@/game/objects/agent/state/InitialState";
 import { AgentEvent } from "../objects/agent/Agent";
+import { tile_width } from "../consts";
 
 export const AgentPrefab = (scene: Phaser.Scene, state) => {
     const prefab = addEntity(scene.world);
@@ -29,14 +30,15 @@ export const AgentPrefab = (scene: Phaser.Scene, state) => {
     addComponent(scene.world, Sprite, prefab);
     addComponent(scene.world, Agent, prefab);
     addComponent(scene.world, StateMachineComponent, prefab);
-
+    Position.x[prefab] = state.entity.position.x * tile_width;
+    Position.y[prefab] = state.entity.position.y * tile_width;
+    console.log(Position.x[prefab], Position.y[prefab]);
     Agent.physics[prefab] = scene.physics.add
-        .sprite(0, 0, "character", "down")
+        .sprite(Position.x[prefab], Position.y[prefab], "character", "down")
         .setSize(30, 46)
         .setOffset(0, 0)
         .setDepth(1);
-    Position.x[prefab] = 100;
-    Position.y[prefab] = 100;
+
     Sprite.texture[prefab] = Textures.TankBlue;
     const mach = new StateMachine<InitialStateContext, AgentEvent>(
         new InitialState({

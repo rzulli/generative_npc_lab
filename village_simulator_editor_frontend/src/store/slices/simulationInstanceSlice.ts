@@ -3,7 +3,11 @@ import type { AppThunk } from "@/store";
 import SimulationService from "@/api/Simulation";
 import { BaseEntity } from "./baseEntity";
 import { EventBus } from "@/game/EventBus";
-import { createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import {
+    createAsyncThunk,
+    PayloadAction,
+    createSelector,
+} from "@reduxjs/toolkit";
 import { socketClient } from "@/App";
 interface LogMessage {
     message: string;
@@ -18,6 +22,15 @@ interface LogEvent {
     data: any;
     scope: string;
 }
+async function decompressBlob(blob: ArrayBuffer) {
+    const uint8Array = new Uint8Array(blob);
+    const ds = new DecompressionStream("gzip");
+    const decompressedStream = new Response(uint8Array).body.pipeThrough(ds);
+    const result = await new Response(decompressedStream).text();
+
+    return result;
+}
+
 export const buildEventThunk = (eventName: string) => {
     return createAsyncThunk(
         "socketEvent" + eventName,
@@ -26,35 +39,32 @@ export const buildEventThunk = (eventName: string) => {
 
             return await socketClient.on(eventName, (data) => {
                 try {
-                    // const jsonString =
-                    //     typeof data === "string" ? data : data.data;
-                    // console.log(jsonString);
-                    const parsedMessages = JSON.parse(data);
-                    //console.log(parsedMessages);
+                    const startTime = performance.now();
+                    decompressBlob(data).then((data) => {
+                        const parsedMessages = JSON.parse(data);
 
-                    // Object.entries(parsedMessages).map(([key, v]) => {
-                    //     console.log(key);
-                    //     if (typeof parsedMessages[key] === "string") {
-                    //         try {
-                    //             const parsedData = JSON.parse(
-                    //                 parsedMessages[key]
-                    //             );
-                    //             parsedMessages[key] = parsedData;
-                    //         } catch (e) {
-                    //             // If parsing fails, keep the original string
-                    //             console.warn(`Failed to parse key ${key}:`, e);
-                    //         }
-                    //     }
-                    // });
-                    //console.log(parsedMessages);
-                    dispatch({
-                        type: "simulationInstance/socketEvent",
-                        payload: {
+                        const payload = {
                             scope: parsedMessages.scope,
                             event: eventName,
                             data: parsedMessages.data,
                             eventTime: parsedMessages.eventTime,
-                        },
+                        };
+                        dispatch({
+                            type: "simulationInstance/socketEvent",
+                            payload: payload,
+                        });
+                        console.log();
+                        dispatch({
+                            type: "simulationInstance/" + eventName,
+                            payload: payload,
+                        });
+                        const endTime = performance.now();
+                        console.log(
+                            `[EVENT] - simulationInstance/${eventName} took ${Math.trunc(
+                                endTime - startTime
+                            )} ms`,
+                            payload
+                        );
                     });
                 } catch (error) {
                     console.error(
@@ -92,29 +102,11 @@ export const startEventListeners = (dispatch) => {
     const eventThunks = events.map(buildEventThunk);
     console.log(eventThunks);
     eventThunks.forEach((eventThunk) => {
-        console.log("Starting event listener ", eventThunk);
+        console.debug("Starting event listener ", eventThunk);
         dispatch(eventThunk());
     });
 };
 
-// export const fetchMessages = createAsyncThunk(
-//     "fetchMessages",
-//     async function (_, { getState, dispatch }) {
-//         // console.log("state ", getState());
-//         return await socketClient.on("message", (receivedMessages) => {
-//             const jsonString = receivedMessages.data.replace(/'/g, '"');
-//             console.log(jsonString);
-//             const parsedMessages = JSON.parse(jsonString);
-//             console.log(parsedMessages);
-//             const scope = parsedMessages.scope;
-
-//             dispatch({
-//                 type: "simulationInstance/message",
-//                 payload: { scope, message: parsedMessages },
-//             });
-//         });
-//     }
-// );
 export interface SimulationInstanceSliceState {
     version: string | null;
     simulation_uid: string;
@@ -122,6 +114,9 @@ export interface SimulationInstanceSliceState {
     continous: boolean;
     // logs: { [scope: string]: LogMessage[] };
     events: { [scope: string]: LogEvent[] };
+    map_metadata: {};
+    reverse_lookup: {};
+    map_state: {};
 }
 
 const initialState: SimulationInstanceSliceState = {
@@ -131,6 +126,9 @@ const initialState: SimulationInstanceSliceState = {
     // logs: {},
     continous: false,
     events: {},
+    map_metadata: {},
+    reverse_lookup: {},
+    map_state: {},
 };
 
 export const spawnSimulation = createAsyncThunk(
@@ -165,6 +163,19 @@ export const playSimulation = createAsyncThunk(
         });
     }
 );
+
+export const socketEvent = createAsyncThunk(
+    "playSimulation",
+    async function (_, { getState, dispatch }) {
+        dispatch(setContinous(true));
+        socketClient.emit("step_simulation", null);
+        EventBus.on("step_ended", () => {
+            console.log("step_ended, calling new step_simulation");
+            socketClient.emit("step_simulation", null);
+        });
+    }
+);
+
 // If you are not using async thunks you can use the standalone `createSlice`.
 export const simulationInstanceSlice = createAppSlice({
     name: "simulationInstance",
@@ -172,16 +183,15 @@ export const simulationInstanceSlice = createAppSlice({
     initialState,
     // The `reducers` field lets us define reducers and generate associated actions
     reducers: {
-        // message: (state, action) => {
-        //     console.log("MESSAGE REDUCER ", state, action);
-
-        //     const [scope, subscope] = action.payload.scope.split(":");
-        //     if (!state.logs[scope]) {
-        //         state.logs[scope] = [];
-        //     }
-
-        //     state.logs[scope].push(action.payload.message);
-        // },
+        reverse_lookup: (state, action) => {
+            state.reverse_lookup = action.payload.data;
+        },
+        map_metadata: (state, action) => {
+            state.map_metadata = action.payload.data;
+        },
+        map_state: (state, action) => {
+            state.map_state = action.payload.data;
+        },
         setContinous: (state, action) => {
             state.continous = action.payload;
         },
@@ -190,25 +200,25 @@ export const simulationInstanceSlice = createAppSlice({
             EventBus.removeAllListeners("step_ended");
         },
         socketEvent: (state, action) => {
-            // console.log("SOCKET_EVENT REDUCER ", state, action);
+            //console.log("SOCKET_EVENT REDUCER ", state, action);
             const event = action.payload.event;
             const data = action.payload.data.data || action.payload.data;
             const [scope, subscope] = action.payload.scope.split(":");
-            if (!state.events[scope]) {
-                state.events[scope] = [];
-            }
-            const eventTime = action.payload.eventTime;
 
-            state.events[scope].push({
-                eventTime,
+            const eventTime = action.payload.eventTime;
+            const eventData = {
                 event,
                 data,
                 scope,
                 subscope: subscope || null,
-            });
-            EventBus.emit("socketEvent", {});
-            const eventData = { event, data, scope, subscope, eventTime };
-            //console.log(event, eventData);
+                eventTime,
+            };
+
+            if (!state.events[scope]) {
+                state.events[scope] = [];
+            }
+            state.events[scope].push(eventData);
+            EventBus.emit("socketEvent", eventData);
             EventBus.emit(event, eventData);
         },
     },
@@ -232,10 +242,29 @@ export const simulationInstanceSlice = createAppSlice({
             state.status = "failed";
         });
     },
-    // You can define your selectors here. These selectors receive the slice
-    // state as their first argument.
+
     selectors: {
         selectSimulationInstance: (simulationInstance) => simulationInstance,
+        selectSimulationInstanceMetadata: createSelector(
+            (simulationInstance: SimulationInstanceSliceState) =>
+                simulationInstance.version,
+            (simulationInstance: SimulationInstanceSliceState) =>
+                simulationInstance.continous,
+            (simulationInstance: SimulationInstanceSliceState) =>
+                simulationInstance.simulation_uid,
+            (simulationInstance: SimulationInstanceSliceState) =>
+                simulationInstance.status,
+            (version, continuous, simulation_uid, status) => ({
+                version,
+                continuous,
+                simulation_uid,
+                status,
+            })
+        ),
+        selectMapMetadata: (simulationInstance) =>
+            simulationInstance.map_metadata,
+        selectReverseLookup: (simulationInstance) =>
+            simulationInstance.reverse_lookup,
     },
 });
 
@@ -244,7 +273,8 @@ export const { setContinous, pauseSimulation } =
     simulationInstanceSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
-export const { selectSimulationInstance } = simulationInstanceSlice.selectors;
+export const { selectSimulationInstance, selectSimulationInstanceMetadata } =
+    simulationInstanceSlice.selectors;
 
 // // We can also write thunks by hand, which may contain both sync and async logic.
 // // Here's an example of conditionally dispatching actions based on current state.

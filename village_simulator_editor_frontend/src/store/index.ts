@@ -25,6 +25,11 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         reducer: rootReducer,
         // Adding the api middleware enables caching, invalidation, polling,
         // and other useful features of `rtk-query`.
+        middleware: (getDefault) =>
+            getDefault({
+                serializableCheck: { warnAfter: 150 },
+                immutabilityCheck: { warAfter: 150 },
+            }),
 
         preloadedState,
     });

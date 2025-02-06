@@ -12,7 +12,7 @@ export class InitialState extends State<InitialStateContext, CursorEvent> {
     onEvent(event: CursorEvent): State<IdleCursorContext, CursorEvent> | null {
         return new IdleCursorState({
             ...this.context,
-            cursor: new Cursor(this.context),
+            cursor: Cursor.getInstance(this.context),
         });
     }
 }

@@ -1,6 +1,6 @@
 from .db import db
 from nanoid import generate
-
+from ..utils import global_id
 
 class MapService():
 
@@ -29,7 +29,7 @@ class MapService():
     
     def create_map(self,data):
         print(data)
-        return self.map_meta.insert_one({"uid":generate(size=7),"name":data["name"], "version":0, \
+        return self.map_meta.insert_one({"uid":global_id(size=7),"name":data["name"], "version":0, \
                                            "mapState": data["mapState"], "updateStack": data["updateStack"]})
 
     def update_map_updateStack(self,uid, version, updateStack):
