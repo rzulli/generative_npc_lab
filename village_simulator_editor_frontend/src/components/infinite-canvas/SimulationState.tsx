@@ -6,12 +6,9 @@ import {
 } from "@/store/slices/simulationInstanceSlice";
 import { JsonEditor } from "json-edit-react";
 
-export default function AgentState({ scope }) {
-    const agents = useAppSelector(selectSimulationAgents);
-    const agentExists = scope in agents;
-    if (!agentExists) {
-        return <div>Agent {scope} does not exist</div>;
-    }
+export default function SimulationState({ scope }) {
+    const simulation = useAppSelector(selectSimulationInstanceMetadata);
+
     return (
         <div
             style={{ pointerEvents: "all" }}
@@ -23,8 +20,8 @@ export default function AgentState({ scope }) {
                 restrictDelete={true}
                 restrictEdit={true}
                 restrictDrag={true}
-                data={agents[scope]}
-                rootName="Agent Info"
+                data={simulation}
+                rootName="Simulation Metadata"
             />
         </div>
     );

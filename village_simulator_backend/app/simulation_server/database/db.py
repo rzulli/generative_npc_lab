@@ -10,7 +10,7 @@ def get_db():
     """
     Configuration method to return db instance
     """
-    print(g)
+    
     db = getattr(g, "_database", None)
     
     if db is None:

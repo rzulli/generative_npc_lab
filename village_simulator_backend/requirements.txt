@@ -54,3 +54,4 @@ wsproto==1.2.0
 yarl==1.18.3
 zipp==3.21.0
 eventlet==0.38.2
+mistralai==1.5.0

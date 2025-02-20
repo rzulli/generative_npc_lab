@@ -9,6 +9,7 @@ import {
     createSelector,
 } from "@reduxjs/toolkit";
 import { socketClient } from "@/App";
+import { State } from "../../lib/stateMachine/StateMachine";
 interface LogMessage {
     message: string;
     eventTime: Date;
@@ -42,7 +43,7 @@ export const buildEventThunk = (eventName: string) => {
                     const startTime = performance.now();
                     decompressBlob(data).then((data) => {
                         const parsedMessages = JSON.parse(data);
-
+                        // console.log(parsedMessages?.data?.state);
                         const payload = {
                             scope: parsedMessages.scope,
                             event: eventName,
@@ -53,13 +54,13 @@ export const buildEventThunk = (eventName: string) => {
                             type: "simulationInstance/socketEvent",
                             payload: payload,
                         });
-                        console.log();
+
                         dispatch({
                             type: "simulationInstance/" + eventName,
                             payload: payload,
                         });
                         const endTime = performance.now();
-                        console.log(
+                        console.debug(
                             `[EVENT] - simulationInstance/${eventName} took ${Math.trunc(
                                 endTime - startTime
                             )} ms`,
@@ -117,6 +118,7 @@ export interface SimulationInstanceSliceState {
     map_metadata: {};
     reverse_lookup: {};
     map_state: {};
+    agents: {};
 }
 
 const initialState: SimulationInstanceSliceState = {
@@ -129,6 +131,7 @@ const initialState: SimulationInstanceSliceState = {
     map_metadata: {},
     reverse_lookup: {},
     map_state: {},
+    agents: {},
 };
 
 export const spawnSimulation = createAsyncThunk(
@@ -199,10 +202,30 @@ export const simulationInstanceSlice = createAppSlice({
             state.continous = false;
             EventBus.removeAllListeners("step_ended");
         },
+        spawn_agent: (state, action) => {
+            state.agents = {
+                ...state.agents,
+                [action.payload.scope]: action.payload.data,
+            };
+        },
+        update_agent: (state, action) => {
+            state.agents = {
+                ...state.agents,
+                [action.payload.scope]: action.payload.data,
+            };
+        },
+
         socketEvent: (state, action) => {
-            //console.log("SOCKET_EVENT REDUCER ", state, action);
+            console.log("SOCKET_EVENT REDUCER ", state, action);
             const event = action.payload.event;
-            const data = action.payload.data.data || action.payload.data;
+
+            let data = action.payload.data;
+            //TODO - make this better and more generic
+            if (event == "agent_update") {
+                Object.entries(data.state).map(([k, v]) => {
+                    data.state[k] = JSON.parse(v);
+                });
+            }
             const [scope, subscope] = action.payload.scope.split(":");
 
             const eventTime = action.payload.eventTime;
@@ -245,6 +268,8 @@ export const simulationInstanceSlice = createAppSlice({
 
     selectors: {
         selectSimulationInstance: (simulationInstance) => simulationInstance,
+        selectSimulationAgents: (simulationInstance) =>
+            simulationInstance.agents,
         selectSimulationInstanceMetadata: createSelector(
             (simulationInstance: SimulationInstanceSliceState) =>
                 simulationInstance.version,
@@ -261,6 +286,7 @@ export const simulationInstanceSlice = createAppSlice({
                 status,
             })
         ),
+
         selectMapMetadata: (simulationInstance) =>
             simulationInstance.map_metadata,
         selectReverseLookup: (simulationInstance) =>
@@ -273,8 +299,11 @@ export const { setContinous, pauseSimulation } =
     simulationInstanceSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
-export const { selectSimulationInstance, selectSimulationInstanceMetadata } =
-    simulationInstanceSlice.selectors;
+export const {
+    selectSimulationInstance,
+    selectSimulationInstanceMetadata,
+    selectSimulationAgents,
+} = simulationInstanceSlice.selectors;
 
 // // We can also write thunks by hand, which may contain both sync and async logic.
 // // Here's an example of conditionally dispatching actions based on current state.

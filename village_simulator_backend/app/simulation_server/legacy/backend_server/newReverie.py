@@ -33,7 +33,7 @@ from .global_methods import *
 from .utils import *
 from .maze import *
 from .persona.persona import *
-from ...database.environment import SimulationService
+from ...database.simulation import SimulationService
 
 ##############################################################################
 #                                  REVERIE                                   #

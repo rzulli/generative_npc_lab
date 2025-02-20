@@ -13,7 +13,7 @@ import {
 } from "tldraw";
 
 import { SquareArrowDownLeft, SquareArrowOutUpRight } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Circle2d, Geometry2d, ShapeUtil } from "tldraw";
 
 import { EventBus } from "./game/EventBus";
@@ -31,8 +31,10 @@ import { SimulationLogShapeUtil } from "./components/infinite-canvas/SimulationL
 import SimulationCanvasShapeUtil from "./components/infinite-canvas/SimulationCanvasShapeUtil";
 import { simulationInstanceSlice } from "./store/slices/simulationInstanceSlice";
 import { PromptShapeUtil } from "./components/infinite-canvas/PromptShapeUtil";
+import { createNewPrompt } from "./store/slices/promptMetaSlice";
 
 export default function SimulationPlayer() {
+    const dispatch = useDispatch();
     return (
         <div className="relative h-[100vh]">
             <Tldraw
@@ -43,20 +45,7 @@ export default function SimulationPlayer() {
                     PromptShapeUtil,
                 ]}
                 onMount={(editor) => {
-                    editor.zoomOut();
-                    editor.createShape({
-                        id: "shape:alo",
-                        type: "simulation-log",
-                        x: 0,
-                        y: 620,
-                        props: {
-                            h: 400,
-                            w: 600,
-                            scope: "agent",
-                            shapeType: "agentShape",
-                        },
-                    });
-                    editor.zoomToFit();
+                    // setTimeout(() => dispatch(createNewPrompt()), 400);
                 }}
             >
                 <SimulationShapes />
@@ -90,13 +79,17 @@ export function SimulationShapes() {
                 id: shapeId,
                 type: "simulation-log",
                 x: currentX,
-                y: 620,
+                y: 1020,
                 props: {
                     h: calculatedHeight,
                     w: calculatedWidth,
                     scope: newEvent.scope,
+                    shapeType: newEvent.scope.includes("agent")
+                        ? "agentShape"
+                        : "eventLog",
                 },
             });
+
             shapesSet.add(shapeId);
 
             editor.zoomToFit();
@@ -111,28 +104,5 @@ export function SimulationShapes() {
         };
     }, [editor]);
 
-    // useEffect(() => {
-    //     EventBus.on("map_metadata", (newEvent) => {
-    //         console.log(newEvent.data);
-    //         dispatch(setMapMetadata(newEvent.data));
-    //     });
-    //     return () => {
-    //         EventBus.on("map_metadata", (newEvent) => {
-    //             console.log(newEvent.data);
-    //             dispatch(setMapMetadata(newEvent.data));
-    //         });
-    //     };
-    // }, [editor]);
-
-    // useEffect(() => {
-    //     EventBus.on("reverse_lookup", (newEvent) =>
-    //         dispatch(setReverseLookup(newEvent.data))
-    //     );
-    //     return () => {
-    //         EventBus.off("reverse_lookup", (newEvent) =>
-    //             dispatch(setReverseLookup(newEvent.data))
-    //         );
-    //     };
-    // }, [editor]);
     return <div></div>;
 }

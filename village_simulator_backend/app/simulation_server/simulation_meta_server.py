@@ -1,5 +1,5 @@
 
-from .database.environment import SimulationService
+from .database.simulation import SimulationService
 from .legacy.backend_server.newReverie import NewReverieServer
 
 class SimulationMetaServer:

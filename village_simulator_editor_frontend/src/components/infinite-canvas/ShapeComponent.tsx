@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CollapsibleProps } from "./CollapsibleLog";
 import { ShapeHeader } from "./ShapeHeader";
-import { AgentTabs } from "./AgentTabsProps";
+import { AgentTabs } from "./AgentTabs";
 
 export function ShapeComponent({
     scope,
@@ -20,12 +20,7 @@ export function ShapeComponent({
             style={{ pointerEvents: "all" }}
             className={`border rounded-sm w-full h-full bg-slate-300 `}
         >
-            <ShapeHeader
-                agentId={agentId}
-                collapseElement={collapseElement}
-                lockElement={lockElement}
-                shape={shape}
-            >
+            <ShapeHeader lockElement={lockElement}>
                 {lockElement}{" "}
                 <div
                     onClick={(e) => {

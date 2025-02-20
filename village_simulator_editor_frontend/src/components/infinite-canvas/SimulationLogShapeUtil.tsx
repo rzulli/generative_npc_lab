@@ -4,9 +4,10 @@ import {
     BaseBoxShapeUtil,
     RecordProps,
     HTMLContainer,
+    useEditor,
 } from "tldraw";
 import CollapsibleLog from "@/components/infinite-canvas/CollapsibleLog";
-import { MainShape } from "./MainShapeProps";
+import { MainShape } from "./MainShape";
 import { Lock, Unlock } from "lucide-react";
 
 type ISimulationLogShape = TLBaseShape<
@@ -64,34 +65,13 @@ export class SimulationLogShapeUtil extends BaseBoxShapeUtil<ISimulationLogShape
     }
 
     component(shape: ISimulationLogShape) {
-        const lockElement = (
-            <div
-                onMouseDown={(e) => {
-                    e.stopPropagation();
-                    this.editor.updateShape({
-                        id: shape.id,
-                        type: shape.type,
-                        isLocked: !shape.isLocked,
-                        props: {
-                            ...shape.props,
-                        },
-                    });
-                }}
-            >
-                {shape.isLocked ? (
-                    <Lock className="stroke-slate-800 stroke-1" />
-                ) : (
-                    <Unlock className="stroke-slate-800 stroke-1" />
-                )}
-            </div>
-        );
         return (
             <MainShape
                 shape={shape}
                 shapeType={shape.props.shapeType}
                 key={shape.props.scope}
                 scope={shape.props.scope}
-                lockElement={lockElement}
+                lockElement={<LockElement shape={shape} />}
                 collapseFunction={() => {
                     this.editor.updateShape({
                         id: shape.id,
@@ -137,3 +117,29 @@ export class SimulationLogShapeUtil extends BaseBoxShapeUtil<ISimulationLogShape
         return true;
     }
 }
+
+export const LockElement = ({ shape }) => {
+    const editor = useEditor();
+    return (
+        <div
+            className="hover:bg-slate-50 rounded-sm p-2"
+            onMouseDown={(e) => {
+                e.stopPropagation();
+                editor.updateShape({
+                    id: shape.id,
+                    type: shape.type,
+                    isLocked: !shape.isLocked,
+                    props: {
+                        ...shape.props,
+                    },
+                });
+            }}
+        >
+            {shape.isLocked ? (
+                <Lock className="stroke-slate-800 stroke-1" />
+            ) : (
+                <Unlock className="stroke-slate-800 stroke-1" />
+            )}
+        </div>
+    );
+};

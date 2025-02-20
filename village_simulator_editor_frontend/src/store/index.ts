@@ -6,6 +6,7 @@ import { mapMetaSlice } from "./slices/mapMetaSlice";
 import { simulationInstanceSlice } from "./slices/simulationInstanceSlice";
 import { createMySocketMiddleware } from "../middleware/simulationSocketMiddleware";
 import socketSlice from "./slices/socketSlice";
+import { promptMetaSlice } from "./slices/promptMetaSlice";
 
 // `combineSlices` automatically combines the reducers using
 // their `reducerPath`s, therefore we no longer need to call `combineReducers`.
@@ -13,7 +14,8 @@ const rootReducer = combineSlices(
     simulationMetaSlice,
     mapMetaSlice,
     simulationInstanceSlice,
-    socketSlice
+    socketSlice,
+    promptMetaSlice
 );
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;

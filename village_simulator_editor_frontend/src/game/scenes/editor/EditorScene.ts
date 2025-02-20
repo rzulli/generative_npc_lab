@@ -111,7 +111,6 @@ export class EditorScene extends Scene {
                 );
                 //camera.startFollow(Agent.physics[this.agents[eventData.scope]]);
                 console.log("parsed agent data", eventData, this.agents);
-                console.log("ao");
             } catch (error) {
                 console.error(
                     "Failed to parse agent data",

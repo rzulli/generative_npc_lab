@@ -1,5 +1,5 @@
 
-from .database.environment import SimulationService
+from .database.simulation import SimulationService
 from .database.map import MapService
 from .legacy.backend_server.newReverie import NewReverieServer
 from .lucida.lucida import Lucida

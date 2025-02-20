@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { AgentLog } from "./AgentLog";
 import CollapsibleLog from "./CollapsibleLog";
+import { ShapeHeader } from "./ShapeHeader";
+import { SimulationTabs } from "./SimulationTabs";
 
 interface MainShapeProps {
     scope: string;
@@ -36,12 +39,31 @@ export function MainShape({
                 />
             )}
             {shapeType === "simulationShape" && (
-                <CollapsibleLog
+                <SimulationLog
                     shape={shape}
                     scope={scope}
                     lockElement={lockElement}
                 />
             )}
+        </div>
+    );
+}
+
+function SimulationLog({ shape, lockElement, scope }) {
+    const [selectedTab, setSelectedTab] = useState(0);
+    return (
+        <div className="h-full p-2">
+            <ShapeHeader shape={shape}>
+                {" "}
+                <div className="p-3 flex gap-5">
+                    {lockElement}
+                    <div>{scope} </div>
+                </div>
+            </ShapeHeader>
+            <SimulationTabs
+                selectedTab={selectedTab}
+                setSelectedTab={setSelectedTab}
+            />
         </div>
     );
 }

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { PhaserSimulationCanvas } from "@/game/PhaserGame";
+import { ShapeHeader } from "./ShapeHeader";
 
 type ISimulationCanvasShape = TLBaseShape<
     "simulation-canvas",
@@ -44,136 +45,136 @@ export default class SimulationCanvasShapeUtil extends BaseBoxShapeUtil<ISimulat
     }
 
     component(shape: ISimulationCanvasShape) {
+        console.log(shape);
         return (
             <div
-                className="flex flex-col"
+                className="flex flex-col bg-slate-300"
                 style={{ pointerEvents: "all" }}
-                onPointerDown={(e) => {
-                    e.stopPropagation();
-                }}
             >
-                <div className="flex z-10 p-1 gap-3 bg-slate-950 text-white">
-                    {shape.props.w > 400 && (
-                        <div
-                            className=" flex"
-                            onMouseDown={(e) => {
-                                e.stopPropagation();
+                <ShapeHeader shape={shape}>
+                    <div className="flex gap-3 p-3 items-center">
+                        {shape.props.w > 400 && (
+                            <div
+                                className=" flex"
+                                onMouseDown={(e) => {
+                                    e.stopPropagation();
 
-                                if (shape.props.w == 1920) {
-                                    this.editor.updateShape({
-                                        id: shape.id,
-                                        type: shape.type,
-                                        props: {
-                                            ...shape.props,
-                                            w: 800,
-                                            h: 600,
-                                        },
-                                    });
-                                } else if (shape.props.w == 800) {
-                                    this.editor.updateShape({
-                                        id: shape.id,
-                                        type: shape.type,
-                                        props: {
-                                            ...shape.props,
-                                            w: 400,
-                                            h: 320,
-                                        },
-                                    });
-                                } else if (shape.props.w == 400) {
-                                    this.editor.updateShape({
-                                        id: shape.id,
-                                        type: shape.type,
-                                        props: {
-                                            ...shape.props,
-                                            w: 1920,
-                                            h: 1080,
-                                        },
-                                    });
-                                }
-                            }}
-                        >
-                            {shape.props.w == 1920 && (
-                                <SquareArrowDownLeft className="w-4 h-4 " />
-                            )}
+                                    if (shape.props.w == 1920) {
+                                        this.editor.updateShape({
+                                            id: shape.id,
+                                            type: shape.type,
+                                            props: {
+                                                ...shape.props,
+                                                w: 800,
+                                                h: 600,
+                                            },
+                                        });
+                                    } else if (shape.props.w == 800) {
+                                        this.editor.updateShape({
+                                            id: shape.id,
+                                            type: shape.type,
+                                            props: {
+                                                ...shape.props,
+                                                w: 400,
+                                                h: 320,
+                                            },
+                                        });
+                                    } else if (shape.props.w == 400) {
+                                        this.editor.updateShape({
+                                            id: shape.id,
+                                            type: shape.type,
+                                            props: {
+                                                ...shape.props,
+                                                w: 1920,
+                                                h: 1080,
+                                            },
+                                        });
+                                    }
+                                }}
+                            >
+                                {shape.props.w == 1920 && (
+                                    <SquareArrowDownLeft className="w-4 h-4 " />
+                                )}
 
-                            {shape.props.w == 800 && (
-                                <SquareArrowDownLeft className="w-4 h-4 " />
-                            )}
-                        </div>
-                    )}
-                    {shape.props.w < 1900 && (
-                        <div
-                            className=" flex"
-                            onMouseDown={(e) => {
-                                e.stopPropagation();
-
-                                if (shape.props.w == 400) {
-                                    this.editor.updateShape({
-                                        id: shape.id,
-                                        type: shape.type,
-                                        props: {
-                                            ...shape.props,
-                                            w: 800,
-                                            h: 600,
-                                        },
-                                    });
-                                } else if (shape.props.w == 800) {
-                                    this.editor.updateShape({
-                                        id: shape.id,
-                                        type: shape.type,
-                                        props: {
-                                            ...shape.props,
-                                            w: 1920,
-                                            h: 1080,
-                                        },
-                                    });
-                                } else if (shape.props.w == 1920) {
-                                    this.editor.updateShape({
-                                        id: shape.id,
-                                        type: shape.type,
-                                        props: {
-                                            ...shape.props,
-                                            w: 400,
-                                            h: 320,
-                                        },
-                                    });
-                                }
-                            }}
-                        >
-                            {shape.props.w == 400 && (
-                                <SquareArrowOutUpRight className="w-4 h-4 " />
-                            )}
-
-                            {shape.props.w == 800 && (
-                                <SquareArrowOutUpRight className="w-4 h-4 " />
-                            )}
-                        </div>
-                    )}
-
-                    <div>
-                        {shape.props.w} x {shape.props.h}
-                    </div>
-                    <div>Simulation Panel</div>
-                    <div
-                        onMouseDown={(e) => {
-                            e.stopPropagation();
-                            this.editor.updateShape({
-                                id: shape.id,
-                                type: shape.type,
-                                isLocked: !shape.isLocked,
-                                props: {
-                                    ...shape.props,
-                                },
-                            });
-                        }}
-                    >
-                        {shape.isLocked ? (
-                            <Lock className="stroke-slate-800 stroke-1" />
-                        ) : (
-                            <Unlock className="stroke-slate-800 stroke-1" />
+                                {shape.props.w == 800 && (
+                                    <SquareArrowDownLeft className="w-4 h-4 " />
+                                )}
+                            </div>
                         )}
+                        {shape.props.w < 1900 && (
+                            <div
+                                className=" flex"
+                                onMouseDown={(e) => {
+                                    e.stopPropagation();
+
+                                    if (shape.props.w == 400) {
+                                        this.editor.updateShape({
+                                            id: shape.id,
+                                            type: shape.type,
+                                            props: {
+                                                ...shape.props,
+                                                w: 800,
+                                                h: 600,
+                                            },
+                                        });
+                                    } else if (shape.props.w == 800) {
+                                        this.editor.updateShape({
+                                            id: shape.id,
+                                            type: shape.type,
+                                            props: {
+                                                ...shape.props,
+                                                w: 1920,
+                                                h: 1080,
+                                            },
+                                        });
+                                    } else if (shape.props.w == 1920) {
+                                        this.editor.updateShape({
+                                            id: shape.id,
+                                            type: shape.type,
+                                            props: {
+                                                ...shape.props,
+                                                w: 400,
+                                                h: 320,
+                                            },
+                                        });
+                                    }
+                                }}
+                            >
+                                {shape.props.w == 400 && (
+                                    <SquareArrowOutUpRight className="w-4 h-4 " />
+                                )}
+
+                                {shape.props.w == 800 && (
+                                    <SquareArrowOutUpRight className="w-4 h-4 " />
+                                )}
+                            </div>
+                        )}
+
+                        <div>
+                            {shape.props.w} x {shape.props.h}
+                        </div>
+                        <div>Simulation Panel</div>
+                        <div
+                            onMouseDown={(e) => {
+                                e.stopPropagation();
+                                this.editor.updateShape({
+                                    id: shape.id,
+                                    type: shape.type,
+                                    isLocked: !shape.isLocked,
+                                    props: {
+                                        ...shape.props,
+                                    },
+                                });
+                            }}
+                        >
+                            {shape.isLocked ? (
+                                <Lock className="stroke-slate-800 stroke-1" />
+                            ) : (
+                                <Unlock className="stroke-slate-800 stroke-1" />
+                            )}
+                        </div>
                     </div>
-                </div>
+                </ShapeHeader>
                 <PhaserSimulationCanvas
                     width={shape.props.w}
                     height={shape.props.h - 26}

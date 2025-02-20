@@ -37,9 +37,9 @@ export default function createAgentSystem(scene) {
 
         try {
             // let parsedAgent = JSON.parse(data);
-            Object.entries(eventData.data.state).map(([k, v]) => {
-                eventData.data.state[k] = JSON.parse(v);
-            });
+            // Object.entries(eventData.data.state).map(([k, v]) => {
+            //     eventData.data.state[k] = JSON.parse(v);
+            // });
             // console.log("agent_update2", eventData);
             const prefab = scene.agents[eventData.scope];
             // console.log(prefab);
