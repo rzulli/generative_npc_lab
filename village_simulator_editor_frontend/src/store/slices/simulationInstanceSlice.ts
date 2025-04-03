@@ -10,6 +10,7 @@ import {
 } from "@reduxjs/toolkit";
 import { socketClient } from "@/App";
 import { State } from "../../lib/stateMachine/StateMachine";
+import { act } from "react";
 interface LogMessage {
     message: string;
     eventTime: Date;
@@ -86,6 +87,7 @@ const events = [
     "simulation_start",
     "simulation_end",
     "simulation_dead",
+    "simulation_error",
     "map_state",
     "map_metadata",
     "reverse_lookup",
@@ -213,6 +215,11 @@ export const simulationInstanceSlice = createAppSlice({
                 ...state.agents,
                 [action.payload.scope]: action.payload.data,
             };
+        },
+        simulation_error: (state, action) => {
+            state.status = "failed";
+            state.continous = false;
+            console.log(action.payload);
         },
 
         socketEvent: (state, action) => {

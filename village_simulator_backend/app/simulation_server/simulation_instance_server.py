@@ -16,20 +16,20 @@ class SimulationInstanceService:
     def spawn_lucida_simulation(self, uid):
         lucida_instance = Lucida(self.socketio, self.namespace)
         
-        simulation = self.simulation.get_latest_simulation(uid)
+        simulation = self.simulation.instance.get_latest_entity(uid)
         
         if not simulation:
-            Lucida.event_manager.emit_message("Simulation not found")
-            return
+            Lucida.event_manager.emit_event("simulation_error", {"message": "Simulation not found"})
+            return 
         
         lucida_instance.set_simulation_instance(simulation)
-        map = self.map.get_map_by_uid(simulation["map_uid"], simulation[
+        map = self.map.meta.get_entity_by_uid(simulation["map_uid"], simulation[
             "map_version"
         ])
         
         if not map:
-            Lucida.event_manager.emit_message("Map not found")
-            return
+            Lucida.event_manager.emit_event("simulation_error", {"message": "Map not found"})
+            return 
         lucida_instance.set_map( map)
         
         @self.socketio.on("disconnect", namespace=self.namespace)

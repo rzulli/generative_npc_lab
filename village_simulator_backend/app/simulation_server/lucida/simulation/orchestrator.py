@@ -28,7 +28,7 @@ class Orchestrator:
         
         for module_name, thread in self.threads.items():
             if self.modules[module_name].dead:
-                self.logger.info("aquiii")
+                self.logger.debug(f"Module {module_name} is dead")
                 if not self.stop_event.ready():
                     self.stop_event.send()
                 self.stop_all_modules()

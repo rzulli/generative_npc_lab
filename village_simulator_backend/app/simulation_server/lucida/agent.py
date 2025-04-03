@@ -99,37 +99,3 @@ class Agent:
         for module in self.modules:
             self.orchestrator.spawn_module(module)
 
-
-
-    
-class AgentBuilder:
-    def __init__(self):
-        self.name = None
-        self.atavistic_state = None
-        self.conscious_state = None
-        self.orchestrator = None
-        self.modules = []
-
-    def set_name(self, name):
-        self.name = name
-        return self
-
-    def set_atavistic_state(self, atavistic_state):
-        self.atavistic_state = atavistic_state
-        return self
-
-    def set_conscious_state(self, conscious_state):
-        self.conscious_state = conscious_state
-        return self
-
-    def set_orchestrator(self, orchestrator):
-        self.orchestrator = orchestrator
-        return self
-
-    def add_module(self, module):
-        self.modules.append(module)
-        return self
-
-    def build(self):
-        return Agent(self.name, self.atavistic_state, self.conscious_state, self.orchestrator, self.modules)
-

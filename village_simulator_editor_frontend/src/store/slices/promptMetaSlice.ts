@@ -129,7 +129,7 @@ export const fetchPromptsAsync = createAsyncThunk(
             throw e;
         }
     }
-);
+); 
 
 export const updatePromptAsync = createAsyncThunk(
     "promptMeta/updatePrompt",

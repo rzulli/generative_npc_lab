@@ -26,7 +26,14 @@ import {
 import { useSelector } from "react-redux";
 import "tldraw/tldraw.css";
 import { useEditor } from "tldraw";
-import { Menubar } from "../ui/menubar";
+import {
+    Menubar,
+    MenubarContent,
+    MenubarItem,
+    MenubarMenu,
+    MenubarShortcut,
+    MenubarTrigger,
+} from "../ui/menubar";
 
 import { addPrompt, createNewPrompt } from "@/store/slices/promptMetaSlice";
 import { EventBus } from "@/game/EventBus";
@@ -50,6 +57,7 @@ import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { timeAgo } from "@/lib/utils";
+import { set } from "zod";
 
 export function EditorTools() {
     const editor = useEditor();
@@ -58,32 +66,6 @@ export function EditorTools() {
 
     const dispatch = useAppDispatch();
 
-    const handleStart = () => {
-        if (editor) {
-            console.log("simulation_start", editor, simulationInstance);
-            // const { id, x, y, w, h, scope, logInstances } = event.detail;
-            editor.createShapes([
-                {
-                    id: "shape:canvas",
-                    type: "simulation-canvas",
-                    x: 0,
-                    y: 0,
-                },
-            ]);
-            editor.createShape({
-                id: "shape:simulation-screen",
-                type: "simulation-log",
-                x: 0,
-                y: 650,
-                props: {
-                    h: 400,
-                    w: 600,
-                    scope: "Simulation",
-                    shapeType: "simulationShape",
-                },
-            });
-        }
-    };
     useEffect(() => {
         const handleAddNewPrompt = (data) => {
             if (editor) {
@@ -116,102 +98,9 @@ export function EditorTools() {
 
     return (
         <div className="absolute inset-x-0 items-center flex flex-1 justify-around z-[300] p-2 pointer-events-none ">
-            <Menubar className="text-lg pointer-events-auto cursor-pointer">
-                <div
-                    onClick={() => {
-                        dispatch(createNewPrompt());
-                    }}
-                >
-                    <ReceiptText />
-                </div>
-                <div>
-                    <PromptSelectorModal />
-                </div>
-            </Menubar>
-            <Menubar className="cursor-pointer">
-                {state.connectionStatus == "connected" ? (
-                    <>
-                        <div
-                            className="text-green-500 text-lg pointer-events-auto"
-                            onClick={() => dispatch(disconnectFromSocket())}
-                        >
-                            <Unplug />
-                        </div>{" "}
-                        {simulationInstance.status == "failed" && (
-                            <div className="text-red-500 text-lg pointer-events-auto">
-                                <CircleOff />
-                            </div>
-                        )}
-                        {simulationInstance.status == "loading" && (
-                            <div className="text-green-500 text-lg pointer-events-auto">
-                                <LoaderCircle />
-                            </div>
-                        )}
-                        {!simulationInstance.status && (
-                            <div
-                                className="text-green-500 text-lg pointer-events-auto"
-                                onClick={() =>
-                                    dispatch(
-                                        spawnSimulation({
-                                            record_uid: "uFVuQ",
-                                            version: null,
-                                        })
-                                    )
-                                }
-                            >
-                                <HardDriveDownload />
-                            </div>
-                        )}
-                        {simulationInstance.status == "idle" && (
-                            <>
-                                <div
-                                    className="text-green-500 text-lg pointer-events-auto"
-                                    onClick={() =>
-                                        dispatch(
-                                            stepSimulation({
-                                                record_uid: "uFVuQ",
-                                                version: null,
-                                            })
-                                        )
-                                    }
-                                >
-                                    <RedoDot />
-                                </div>
-                                {simulationInstance.continous && (
-                                    <div
-                                        className="text-green-500 text-lg pointer-events-auto"
-                                        onClick={() =>
-                                            dispatch(pauseSimulation())
-                                        }
-                                    >
-                                        <PauseCircle />
-                                    </div>
-                                )}
-                                {!simulationInstance.continous && (
-                                    <div
-                                        className="text-green-500 text-lg pointer-events-auto"
-                                        onClick={() =>
-                                            dispatch(playSimulation())
-                                        }
-                                    >
-                                        <PlayCircle />
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </>
-                ) : (
-                    <div
-                        className="text-slate-800 text-lg pointer-events-auto"
-                        onClick={() => {
-                            dispatch(connectToSocket());
-                            handleStart();
-                        }}
-                    >
-                        <Plug />
-                    </div>
-                )}
-            </Menubar>
+            <MetaCrudMenu />
+
+            <SimulationInstanceMenu />
         </div>
     );
 }
@@ -233,6 +122,7 @@ function PromptSelectorModal() {
     }, [dispatch]);
 
     const handleOpen = () => {
+        console.log("ahjsduiahsduahsud");
         setOpen(true);
     };
 
@@ -262,8 +152,11 @@ function PromptSelectorModal() {
 
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger asChild>
-                <FolderOpen />
+            <AlertDialogTrigger onClick={handleOpen} className="block">
+                <div className="flex items-center gap-5 ">
+                    <FolderOpen />
+                    Open
+                </div>
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
@@ -318,5 +211,197 @@ function PromptSelectorModal() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+    );
+}
+
+function SimulationInstanceMenu() {
+    const editor = useEditor();
+    const simulationInstance = useAppSelector(selectSimulationInstance);
+    const state = useSelector((state) => state.socket);
+
+    const dispatch = useAppDispatch();
+    const handleStart = () => {
+        if (editor) {
+            console.log("simulation_start", editor, simulationInstance);
+            // const { id, x, y, w, h, scope, logInstances } = event.detail;
+            editor.createShapes([
+                {
+                    id: "shape:canvas",
+                    type: "simulation-canvas",
+                    x: 0,
+                    y: 0,
+                },
+            ]);
+            editor.createShape({
+                id: "shape:simulation-screen",
+                type: "simulation-log",
+                x: 0,
+                y: 650,
+                props: {
+                    h: 400,
+                    w: 600,
+                    scope: "Simulation",
+                    shapeType: "simulationShape",
+                },
+            });
+        }
+    };
+    return (
+        <Menubar className="cursor-pointer">
+            {state.connectionStatus == "connected" ? (
+                <>
+                    <div
+                        className="text-green-500 text-lg pointer-events-auto"
+                        onClick={() => dispatch(disconnectFromSocket())}
+                    >
+                        <Unplug />
+                    </div>{" "}
+                    {simulationInstance.status == "failed" && (
+                        <div className="text-red-500 text-lg pointer-events-none">
+                            <CircleOff />
+                        </div>
+                    )}
+                    {simulationInstance.status == "loading" && (
+                        <div className="text-green-500 text-lg pointer-events-auto">
+                            <LoaderCircle />
+                        </div>
+                    )}
+                    {!simulationInstance.status && (
+                        <div
+                            className="text-green-500 text-lg pointer-events-auto"
+                            onClick={() =>
+                                dispatch(
+                                    spawnSimulation({
+                                        record_uid: "uFVuQ",
+                                        version: null,
+                                    })
+                                )
+                            }
+                        >
+                            <HardDriveDownload />
+                        </div>
+                    )}
+                    {simulationInstance.status == "idle" && (
+                        <>
+                            <div
+                                className="text-green-500 text-lg pointer-events-auto"
+                                onClick={() =>
+                                    dispatch(
+                                        stepSimulation({
+                                            record_uid: "uFVuQ",
+                                            version: null,
+                                        })
+                                    )
+                                }
+                            >
+                                <RedoDot />
+                            </div>
+                            {simulationInstance.continous && (
+                                <div
+                                    className="text-green-500 text-lg pointer-events-auto"
+                                    onClick={() => dispatch(pauseSimulation())}
+                                >
+                                    <PauseCircle />
+                                </div>
+                            )}
+                            {!simulationInstance.continous && (
+                                <div
+                                    className="text-green-500 text-lg pointer-events-auto"
+                                    onClick={() => dispatch(playSimulation())}
+                                >
+                                    <PlayCircle />
+                                </div>
+                            )}
+                        </>
+                    )}
+                </>
+            ) : (
+                <div
+                    className="text-slate-800 text-lg pointer-events-auto"
+                    onClick={() => {
+                        dispatch(connectToSocket());
+                        handleStart();
+                    }}
+                >
+                    <Plug />
+                </div>
+            )}
+        </Menubar>
+    );
+}
+
+function MetaCrudMenu() {
+    const dispatch = useAppDispatch();
+    return (
+        <Menubar className="text-lg pointer-events-auto cursor-pointer">
+            <MenubarMenu>
+                <MenubarTrigger>Prompt</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarItem
+                        onClick={() => {
+                            dispatch(createNewPrompt());
+                        }}
+                        className="flex items-center gap-5 "
+                    >
+                        <ReceiptText />
+                        New
+                    </MenubarItem>
+                    <MenubarItem>
+                        <PromptSelectorModal />
+                    </MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+                <MenubarTrigger>Simulation</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarItem
+                        onClick={() => {
+                            dispatch(createNewPrompt());
+                        }}
+                        className="flex items-center gap-5 "
+                    >
+                        <ReceiptText />
+                        New
+                    </MenubarItem>
+                    <MenubarItem>
+                        <PromptSelectorModal />
+                    </MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+                <MenubarTrigger>Map</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarItem
+                        onClick={() => {
+                            dispatch(createNewPrompt());
+                        }}
+                        className="flex items-center gap-5 "
+                    >
+                        <ReceiptText />
+                        New
+                    </MenubarItem>
+                    <MenubarItem>
+                        <PromptSelectorModal />
+                    </MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+                <MenubarTrigger>Persona</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarItem
+                        onClick={() => {
+                            dispatch(createNewPrompt());
+                        }}
+                        className="flex items-center gap-5 "
+                    >
+                        <ReceiptText />
+                        New
+                    </MenubarItem>
+                    <MenubarItem>
+                        <PromptSelectorModal />
+                    </MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+        </Menubar>
     );
 }

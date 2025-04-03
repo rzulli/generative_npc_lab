@@ -13,16 +13,6 @@ import eventlet
 
 SIMULATION_CONNECTION_TIMEOUT = 180
 
-def format_message(message, level=logging.DEBUG, scope="global"):
-    now = datetime.datetime.now().strftime("%H:%M:%S:%f")
-    log_message = {
-        "message": message,
-        "eventTime": now,
-        "scope": scope,
-        "level": level
-    }
-    return log_message
-
 def create_events(socketio, namespace="/"):
     lucida = None
     @socketio.on('spawn_simulation', namespace=namespace)
@@ -32,6 +22,9 @@ def create_events(socketio, namespace="/"):
         def generate():
             sim_server = SimulationInstanceService(socketio, namespace=namespace)
             lucida = sim_server.spawn_lucida_simulation("uFVuQ")
+            if lucida is None:
+                return
+
             lucida.start_simulation()
             
             elapsed = 0
